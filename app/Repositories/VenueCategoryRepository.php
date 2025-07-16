@@ -6,31 +6,33 @@ use App\Repositories\Contracts\VenueCategoryRepositoryInterface;
 
 class VenueCategoryRepository implements VenueCategoryRepositoryInterface
 {
-    public function getAllActive(): array
+   public function getAllActive(): array
     {
-        return VenueCategory::active()
+        return VenueCategory::where('is_active', true)
                            ->with('venueType')
-                           ->ordered()
+                           ->orderBy('sort_order', 'asc')
+                           ->orderBy('name', 'asc')
                            ->get()
                            ->toArray();
     }
 
     public function getByVenueType(int $venueTypeId): array
     {
-        return VenueCategory::active()
-                           ->forVenueType($venueTypeId)
-                           ->ordered()
+        return VenueCategory::where('is_active', true)
+                           ->where('venue_type_id', $venueTypeId)
+                           ->orderBy('sort_order', 'asc')
+                           ->orderBy('name', 'asc')
                            ->get()
                            ->toArray();
     }
 
     public function findById(int $id): ?VenueCategory
     {
-        return VenueCategory::active()->find($id);
+        return VenueCategory::where('is_active', true)->find($id);
     }
 
     public function findBySlug(string $slug): ?VenueCategory
     {
-        return VenueCategory::active()->where('slug', $slug)->first();
+        return VenueCategory::where('is_active', true)->where('slug', $slug)->first();
     }
 }

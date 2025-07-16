@@ -7,7 +7,7 @@ use Carbon\Carbon;
 
 class EventRepository implements EventRepositoryInterface
 {
-    public function create(array $data): Event
+   public function create(array $data): Event
     {
         return Event::create($data);
     }
@@ -76,8 +76,8 @@ class EventRepository implements EventRepositoryInterface
 
     public function getUpcomingEvents(int $limit = 10): array
     {
-        return Event::published()
-                   ->upcoming()
+        return Event::where('status', 'published')
+                   ->where('event_date', '>=', now()->toDateString())
                    ->with(['host', 'venueType', 'venueCategory'])
                    ->orderBy('event_date', 'asc')
                    ->orderBy('event_time', 'asc')
@@ -88,9 +88,9 @@ class EventRepository implements EventRepositoryInterface
 
     public function searchEvents(array $filters): array
     {
-        $query = Event::published()
-                     ->upcoming()
-                     ->with(['host', 'venueType', 'venueCategory', 'confirmedAttendees']);
+        $query = Event::where('status', 'published')
+                     ->where('event_date', '>=', now()->toDateString())
+                     ->with(['host', 'venueType', 'venueCategory']);
 
         // Filter by date range
         if (isset($filters['start_date'])) {

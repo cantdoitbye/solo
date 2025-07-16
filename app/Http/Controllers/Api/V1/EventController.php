@@ -205,7 +205,7 @@ class EventController extends Controller
             ], 400);
         }
     }
-}
+
 
     public function publish(Request $request, int $eventId): JsonResponse
     {

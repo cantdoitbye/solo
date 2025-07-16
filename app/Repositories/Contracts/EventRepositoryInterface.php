@@ -4,7 +4,7 @@ namespace App\Repositories\Contracts;
 
 interface EventRepositoryInterface
 {
-    public function create(array $data): object;
+     public function create(array $data): object;
     public function update(int $id, array $data): object;
     public function findById(int $id): ?object;
     public function findByIdAndHost(int $id, int $hostId): ?object;

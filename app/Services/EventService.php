@@ -1,5 +1,4 @@
 <?php
-// app/Services/EventService.php
 
 namespace App\Services;
 
@@ -70,28 +69,6 @@ class EventService
             'media_attached' => $attachResult,
             'message' => 'Event created successfully as draft'
         ];
-    }isset($data['tags']) && is_array($data['tags'])) {
-            $validTags = $this->eventTagRepository->findByNames($data['tags']);
-            $data['tags'] = array_column($validTags, 'name');
-        }
-
-        // Calculate total tokens display
-        if (isset($data['token_cost_per_attendee']) && isset($data['max_group_size'])) {
-            $data['total_tokens_display'] = $data['max_group_size'] * $data['token_cost_per_attendee'];
-        } elseif (isset($data['token_cost_per_attendee']) && isset($data['min_group_size'])) {
-            $data['total_tokens_display'] = $data['min_group_size'] * $data['token_cost_per_attendee'];
-        }
-
-        // Set default status as draft
-        $data['status'] = 'draft';
-
-        $event = $this->eventRepository->create($data);
-
-        return [
-            'event_id' => $event->id,
-            'status' => $event->status,
-            'message' => 'Event created successfully as draft'
-        ];
     }
 
     public function updateEvent(int $eventId, int $hostId, array $data): array
@@ -104,7 +81,7 @@ class EventService
 
         // Prevent editing published events (except for specific fields)
         if ($event->status === 'published') {
-            $allowedFields = ['description', 'past_event_description', 'media_urls'];
+            $allowedFields = ['description', 'past_event_description'];
             $data = array_intersect_key($data, array_flip($allowedFields));
             
             if (empty($data)) {
@@ -216,75 +193,6 @@ class EventService
     public function getHostEvents(int $hostId, string $status = null): array
     {
         return $this->eventRepository->getByHost($hostId, $status);
-    }
-
-    public function uploadEventMedia(int $eventId, int $hostId, array $files): array
-    {
-        $event = $this->eventRepository->findByIdAndHost($eventId, $hostId);
-        
-        if (!$event) {
-            throw new \Exception('Event not found or you do not have permission to upload media for this event');
-        }
-
-        $uploadedUrls = [];
-        $existingUrls = $event->media_urls ?? [];
-
-        foreach ($files as $file) {
-            // Validate file type and size
-            $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/mov'];
-            if (!in_array($file->getMimeType(), $allowedTypes)) {
-                throw new \Exception('Invalid file type. Only images (JPEG, PNG, WebP) and videos (MP4, MOV) are allowed.');
-            }
-
-            if ($file->getSize() > 50 * 1024 * 1024) { // 50MB limit
-                throw new \Exception('File size too large. Maximum size is 50MB.');
-            }
-
-            // Store file
-            $path = $file->store('events/' . $eventId . '/media', 'public');
-            $uploadedUrls[] = Storage::url($path);
-        }
-
-        // Update event with new media URLs
-        $allUrls = array_merge($existingUrls, $uploadedUrls);
-        $this->eventRepository->update($eventId, ['media_urls' => $allUrls]);
-
-        return [
-            'uploaded_urls' => $uploadedUrls,
-            'total_media_count' => count($allUrls),
-            'message' => 'Media uploaded successfully'
-        ];
-    }
-
-    public function uploadItinerary(int $eventId, int $hostId, $file): array
-    {
-        $event = $this->eventRepository->findByIdAndHost($eventId, $hostId);
-        
-        if (!$event) {
-            throw new \Exception('Event not found or you do not have permission to upload itinerary for this event');
-        }
-
-        // Validate file type
-        $allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-        if (!in_array($file->getMimeType(), $allowedTypes)) {
-            throw new \Exception('Invalid file type. Only PDF and Word documents are allowed for itinerary.');
-        }
-
-        if ($file->getSize() > 10 * 1024 * 1024) { // 10MB limit
-            throw new \Exception('File size too large. Maximum size is 10MB.');
-        }
-
-        // Store file
-        $path = $file->store('events/' . $eventId . '/itinerary', 'public');
-        $url = Storage::url($path);
-
-        // Update event with itinerary URL
-        $this->eventRepository->update($eventId, ['itinerary_url' => [$url]]);
-
-        return [
-            'itinerary_url' => $url,
-            'message' => 'Itinerary uploaded successfully'
-        ];
     }
 
     public function searchPlaces(string $query, string $location = null): array
