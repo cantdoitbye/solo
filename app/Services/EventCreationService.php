@@ -27,8 +27,10 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
 {
     // Process gender rules
     $genderRuleData = $this->processGenderRules($data);
-    $groupSize = $data['max_group_size'] ?? $data['min_group_size'];
-    
+    // $groupSize = $data['max_group_size'] ?? $data['min_group_size'];
+        $minGroupSize = $data['min_group_size'];
+
+    $maxGroupSize = null; 
     $eventData = [
     // Step 1: Basic Info
     'name' => $data['name'],
@@ -55,8 +57,8 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
     'timezone' => $data['timezone'] ?? 'UTC',
     
     // Step 4: Attendees Setup
-    'min_group_size' => $data['min_group_size'],
-    'max_group_size' => $groupSize,
+     'min_group_size' => $minGroupSize,
+        'max_group_size' => $maxGroupSize,
     'min_age' => $data['min_age'],
     'max_age' => $data['max_age'],
     'gender_rule_enabled' => $genderRuleData['gender_rule_enabled'],
@@ -494,14 +496,21 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
     /**
      * Process Gender Rules Logic
      */
-    private function processGenderRules(array $data): array
-    {
-        $groupSize = $data['min_group_size'];
-        $selectedGenders = $data['allowed_genders'] ?? [];
+  
 
-        $userEnabledGenderRules = $data['gender_rule_enabled'] ?? false;
-
-          if (!$userEnabledGenderRules) {
+/**
+ * Process Gender Rules Logic - Updated with required composition value
+ */
+private function processGenderRules(array $data): array
+{
+    $groupSize = $data['min_group_size']; // Only min_group_size, max is infinite
+    $selectedGenders = $data['allowed_genders'] ?? [];
+    
+    // Check if user has enabled gender rules through UI toggle
+    $userEnabledGenderRules = $data['gender_rule_enabled'] ?? false;
+    
+    // If user has not enabled gender rules, return disabled state
+    if (!$userEnabledGenderRules) {
         return [
             'gender_rule_enabled' => false,
             'gender_composition' => null,
@@ -509,50 +518,76 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
             'allowed_genders' => $selectedGenders,
         ];
     }
-
+    
+    // User has enabled gender rules - composition value is now REQUIRED
+    $genderCompositionValue = $data['gender_composition_value'] ?? null;
+    
+    if ($genderCompositionValue === null) {
+        throw new \Exception('Gender composition value is required when gender rules are enabled.');
+    }
+    
+    // Validate composition value against min group size (max is infinite)
+    if ($genderCompositionValue > $groupSize) {
+        throw new \Exception('Gender composition value cannot exceed the minimum group size.');
+    }
+    
+    if ($genderCompositionValue <= 0) {
+        throw new \Exception('Gender composition value must be greater than 0.');
+    }
+    
+    // Check if special genders are selected
+    $specialGenders = ['gay', 'trans', 'lesbian', 'bisexual'];
+    $hasSpecialGenders = !empty(array_intersect($selectedGenders, $specialGenders));
+    
+    if ($hasSpecialGenders) {
+        // Cannot enable gender rules for special genders
+        throw new \Exception('Gender rules cannot be enabled when special genders (gay, trans, lesbian, bisexual) are selected.');
+    }
+    
+    // Check if both male and female are selected
+    $hasMale = in_array('male', $selectedGenders);
+    $hasFemale = in_array('female', $selectedGenders);
+    
+    if ($hasMale && $hasFemale) {
+        // Both genders selected - use the provided composition value
+        $maleCount = $genderCompositionValue;
+        $femaleCount = $groupSize - $genderCompositionValue;
         
-        // Check if special genders are selected (gay, trans, lesbian, bisexual)
-        $specialGenders = ['gay', 'trans', 'lesbian', 'bisexual'];
-        $hasSpecialGenders = !empty(array_intersect($selectedGenders, $specialGenders));
-        
-        if ($hasSpecialGenders) {
-            // Disable gender rules for special genders
-            return [
-                'gender_rule_enabled' => false,
-                'gender_composition' => null,
-                'gender_composition_value' => null,
-                'allowed_genders' => $selectedGenders,
-            ];
+        if ($femaleCount < 0) {
+            throw new \Exception('Invalid gender composition value. It would result in negative female count.');
         }
         
-        // Check if both male and female are selected
-        $hasMale = in_array('male', $selectedGenders);
-        $hasFemale = in_array('female', $selectedGenders);
-        
-        if ($hasMale && $hasFemale) {
-            // Both male and female selected - enable gender rules
-            if ($groupSize % 2 !== 0) {
-                throw new \Exception('Group size must be even when both male and female are selected');
-            }
-            
-            $genderCompositionValue = $groupSize / 2;
-            
-            return [
-                'gender_rule_enabled' => true,
-                'gender_composition' => "Equal split: {$genderCompositionValue} males and {$genderCompositionValue} females",
-                'gender_composition_value' => $genderCompositionValue,
-                'allowed_genders' => $selectedGenders,
-            ];
-        }
-        
-        // Only one gender selected or no gender rules needed
+        // For infinite max group size, show minimum requirements
         return [
-            'gender_rule_enabled' => false,
-            'gender_composition' => null,
-            'gender_composition_value' => null,
+            'gender_rule_enabled' => true,
+            'gender_composition' => "Minimum: {$maleCount} males and {$femaleCount} females (additional attendees can be of any selected gender)",
+            'gender_composition_value' => $genderCompositionValue,
             'allowed_genders' => $selectedGenders,
         ];
     }
+    
+    // Only one gender selected
+    if ($hasMale && !$hasFemale) {
+        return [
+            'gender_rule_enabled' => true,
+            'gender_composition' => "Minimum: {$genderCompositionValue} males required (group size is infinite)",
+            'gender_composition_value' => $genderCompositionValue,
+            'allowed_genders' => $selectedGenders,
+        ];
+    }
+    
+    if ($hasFemale && !$hasMale) {
+        return [
+            'gender_rule_enabled' => true,
+            'gender_composition' => "Minimum: {$genderCompositionValue} females required (group size is infinite)",
+            'gender_composition_value' => $genderCompositionValue,
+            'allowed_genders' => $selectedGenders,
+        ];
+    }
+    
+    // No valid genders selected
+    throw new \Exception('Please select at least one gender when gender rules are enabled.');
+}
 
     private function validateEventForPreview(object $event): void
     {
