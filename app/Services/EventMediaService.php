@@ -1,5 +1,4 @@
 <?php
-// app/Services/EventMediaService.php
 
 namespace App\Services;
 
@@ -7,10 +6,12 @@ use App\Models\EventMedia;
 use App\Models\EventItinerary;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Intervention\Image\Facades\Image;
 
 class EventMediaService
 {
+    /**
+     * Upload media files with session tracking
+     */
     public function uploadMedia(int $userId, array $files, string $sessionId = null): array
     {
         $sessionId = $sessionId ?? Str::uuid()->toString();
@@ -26,17 +27,22 @@ class EventMediaService
                 'id' => $media->id,
                 'url' => $media->file_url,
                 'type' => $media->media_type,
-                'filename' => $media->original_filename
+                'filename' => $media->original_filename,
+                'size' => $media->file_size
             ];
         }
 
         return [
             'session_id' => $sessionId,
             'uploaded_media' => $uploadedMedia,
-            'total_count' => count($uploadedMedia)
+            'total_count' => count($uploadedMedia),
+            'message' => 'Media files uploaded successfully'
         ];
     }
 
+    /**
+     * Upload itinerary file with session tracking
+     */
     public function uploadItinerary(int $userId, $file, string $sessionId = null): array
     {
         $sessionId = $sessionId ?? Str::uuid()->toString();
@@ -51,51 +57,16 @@ class EventMediaService
             'itinerary' => [
                 'id' => $itinerary->id,
                 'url' => $itinerary->file_url,
-                'filename' => $itinerary->original_filename
-            ]
+                'filename' => $itinerary->original_filename,
+                'size' => $itinerary->file_size
+            ],
+            'message' => 'Itinerary uploaded successfully'
         ];
     }
 
-    public function attachMediaToEvent(int $eventId, string $sessionId): array
-    {
-        // Attach all media files from the session to the event
-        $mediaFiles = EventMedia::forSession($sessionId)->unattached()->get();
-        $itineraryFiles = EventItinerary::forSession($sessionId)->unattached()->get();
-
-        $mediaFiles->each(function ($media) use ($eventId) {
-            $media->update([
-                'event_id' => $eventId,
-                'is_attached_to_event' => true
-            ]);
-        });
-
-        $itineraryFiles->each(function ($itinerary) use ($eventId) {
-            $itinerary->update([
-                'event_id' => $eventId,
-                'is_attached_to_event' => true
-            ]);
-        });
-
-        return [
-            'attached_media_count' => $mediaFiles->count(),
-            'attached_itinerary_count' => $itineraryFiles->count(),
-            'media_files' => $mediaFiles->map(function ($media) {
-                return [
-                    'id' => $media->id,
-                    'url' => $media->file_url,
-                    'type' => $media->media_type
-                ];
-            }),
-            'itinerary_files' => $itineraryFiles->map(function ($itinerary) {
-                return [
-                    'id' => $itinerary->id,
-                    'url' => $itinerary->file_url,
-                    'filename' => $itinerary->original_filename
-                ];
-            })
-        ];
-    }
-
+    /**
+     * Get media files for a session
+     */
     public function getSessionMedia(string $sessionId): array
     {
         $mediaFiles = EventMedia::forSession($sessionId)->unattached()->get();
@@ -106,55 +77,113 @@ class EventMediaService
             'media_files' => $mediaFiles->map(function ($media) {
                 return [
                     'id' => $media->id,
-                    'url' => $media->file_url,
                     'type' => $media->media_type,
-                    'filename' => $media->original_filename
+                    'url' => $media->file_url,
+                    'filename' => $media->original_filename,
+                    'size' => $media->file_size
                 ];
             }),
             'itinerary_files' => $itineraryFiles->map(function ($itinerary) {
                 return [
                     'id' => $itinerary->id,
                     'url' => $itinerary->file_url,
-                    'filename' => $itinerary->original_filename
+                    'filename' => $itinerary->original_filename,
+                    'size' => $itinerary->file_size
                 ];
             }),
-            'total_media' => $mediaFiles->count(),
-            'total_itinerary' => $itineraryFiles->count()
+            'total_media_count' => $mediaFiles->count(),
+            'total_itinerary_count' => $itineraryFiles->count()
         ];
     }
 
+    /**
+     * Attach media to event (called in step 6)
+     */
+    public function attachMediaToEvent(int $eventId, string $sessionId): array
+    {
+        $mediaFiles = EventMedia::forSession($sessionId)->unattached()->get();
+
+        $attachedCount = 0;
+        foreach ($mediaFiles as $media) {
+            $media->update([
+                'event_id' => $eventId,
+                'is_attached_to_event' => true
+            ]);
+            $attachedCount++;
+        }
+
+        return [
+            'attached_media_count' => $attachedCount,
+            'message' => "Successfully attached {$attachedCount} media files to event"
+        ];
+    }
+
+    /**
+     * Attach itinerary to event (called in step 7)
+     */
+    public function attachItineraryToEvent(int $eventId, string $sessionId): array
+    {
+        $itineraryFiles = EventItinerary::forSession($sessionId)->unattached()->get();
+
+        $attachedCount = 0;
+        foreach ($itineraryFiles as $itinerary) {
+            $itinerary->update([
+                'event_id' => $eventId,
+                'is_attached_to_event' => true
+            ]);
+            $attachedCount++;
+        }
+
+        return [
+            'attached_itinerary_count' => $attachedCount,
+            'message' => "Successfully attached {$attachedCount} itinerary files to event"
+        ];
+    }
+
+    /**
+     * Delete session media (cleanup)
+     */
     public function deleteSessionMedia(string $sessionId): array
     {
         $mediaFiles = EventMedia::forSession($sessionId)->unattached()->get();
         $itineraryFiles = EventItinerary::forSession($sessionId)->unattached()->get();
 
-        // Delete files from storage
+        $deletedMedia = 0;
+        $deletedItinerary = 0;
+
         foreach ($mediaFiles as $media) {
-            Storage::disk('public')->delete($media->file_path);
+            Storage::delete($media->file_path);
             $media->delete();
+            $deletedMedia++;
         }
 
         foreach ($itineraryFiles as $itinerary) {
-            Storage::disk('public')->delete($itinerary->file_path);
+            Storage::delete($itinerary->file_path);
             $itinerary->delete();
+            $deletedItinerary++;
         }
 
         return [
-            'deleted_media_count' => $mediaFiles->count(),
-            'deleted_itinerary_count' => $itineraryFiles->count(),
-            'message' => 'Session media cleaned up successfully'
+            'deleted_media_count' => $deletedMedia,
+            'deleted_itinerary_count' => $deletedItinerary,
+            'message' => 'Session media deleted successfully'
         ];
     }
 
+    // ========================================
+    // PRIVATE HELPER METHODS
+    // ========================================
+
     private function validateMediaFile($file): void
     {
-        $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/mov', 'video/quicktime'];
-        
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/avi', 'video/mov'];
+        $maxSize = 50 * 1024 * 1024; // 50MB
+
         if (!in_array($file->getMimeType(), $allowedTypes)) {
-            throw new \Exception('Invalid file type. Only images (JPEG, PNG, WebP) and videos (MP4, MOV) are allowed.');
+            throw new \Exception('Invalid file type. Only images and videos are allowed.');
         }
 
-        if ($file->getSize() > 50 * 1024 * 1024) { // 50MB limit
+        if ($file->getSize() > $maxSize) {
             throw new \Exception('File size too large. Maximum size is 50MB.');
         }
     }
@@ -162,12 +191,13 @@ class EventMediaService
     private function validateItineraryFile($file): void
     {
         $allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-        
+        $maxSize = 10 * 1024 * 1024; // 10MB
+
         if (!in_array($file->getMimeType(), $allowedTypes)) {
-            throw new \Exception('Invalid file type. Only PDF and Word documents are allowed for itinerary.');
+            throw new \Exception('Invalid file type. Only PDF and Word documents are allowed.');
         }
 
-        if ($file->getSize() > 10 * 1024 * 1024) { // 10MB limit
+        if ($file->getSize() > $maxSize) {
             throw new \Exception('File size too large. Maximum size is 10MB.');
         }
     }
@@ -177,12 +207,14 @@ class EventMediaService
         $originalName = $file->getClientOriginalName();
         $extension = $file->getClientOriginalExtension();
         $storedName = Str::uuid() . '.' . $extension;
-        $mediaType = strpos($file->getMimeType(), 'image/') === 0 ? 'image' : 'video';
-        
+        $path = "event-media/{$userId}/{$sessionId}/{$storedName}";
+
         // Store file
-        $path = $file->storeAs('events/media/' . $sessionId, $storedName, 'public');
+        $file->storeAs('', $path, 'public');
         $url = Storage::url($path);
 
+        $mediaType = str_starts_with($file->getMimeType(), 'image/') ? 'image' : 'video';
+        
         $mediaData = [
             'user_id' => $userId,
             'original_filename' => $originalName,
@@ -192,19 +224,18 @@ class EventMediaService
             'media_type' => $mediaType,
             'mime_type' => $file->getMimeType(),
             'file_size' => $file->getSize(),
-            'upload_session_id' => $sessionId
+            'upload_session_id' => $sessionId,
+            'is_attached_to_event' => false
         ];
 
-        // Get image/video dimensions
+        // Get dimensions for images (optional)
         if ($mediaType === 'image') {
             try {
-                $dimensions = getimagesize($file->getPathname());
-                if ($dimensions) {
-                    $mediaData['width'] = $dimensions[0];
-                    $mediaData['height'] = $dimensions[1];
-                }
+                [$width, $height] = getimagesize($file->getPathname());
+                $mediaData['width'] = $width;
+                $mediaData['height'] = $height;
             } catch (\Exception $e) {
-                // Continue without dimensions if failed
+                // Ignore if can't get dimensions
             }
         }
 
@@ -216,9 +247,10 @@ class EventMediaService
         $originalName = $file->getClientOriginalName();
         $extension = $file->getClientOriginalExtension();
         $storedName = Str::uuid() . '.' . $extension;
-        
+        $path = "event-itinerary/{$userId}/{$sessionId}/{$storedName}";
+
         // Store file
-        $path = $file->storeAs('events/itinerary/' . $sessionId, $storedName, 'public');
+        $file->storeAs('', $path, 'public');
         $url = Storage::url($path);
 
         return [
@@ -229,7 +261,8 @@ class EventMediaService
             'file_url' => $url,
             'mime_type' => $file->getMimeType(),
             'file_size' => $file->getSize(),
-            'upload_session_id' => $sessionId
+            'upload_session_id' => $sessionId,
+            'is_attached_to_event' => false
         ];
     }
 }

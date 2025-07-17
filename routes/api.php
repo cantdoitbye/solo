@@ -2,10 +2,14 @@
 
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventDataController;
+use App\Http\Controllers\Api\EventMediaController as ApiEventMediaController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\OnboardingController;
+use App\Http\Controllers\Api\V1\EventController as V1EventController;
+use App\Http\Controllers\Api\V1\EventCreationController;
 use App\Http\Controllers\Api\V1\EventDataController as V1EventDataController;
 use App\Http\Controllers\Api\V1\EventMediaController;
+use App\Http\Controllers\Api\V1\HomeScreenController;
 use App\Http\Controllers\Api\V1\ProfileController;
 
 Route::prefix('onboarding')->group(function () {
@@ -39,22 +43,88 @@ Route::prefix('event-data')->group(function () {
     Route::get('options', [V1EventDataController::class, 'getGenderOptions']);
 });
 
-    // Event media management (BEFORE event creation)
-    Route::prefix('event-media')->group(function () {
-        Route::post('upload-media', [EventMediaController::class, 'uploadMedia']);
-        Route::post('upload-itinerary', [EventMediaController::class, 'uploadItinerary']);
-        Route::get('session/{session_id}', [EventMediaController::class, 'getSessionMedia']);
-        Route::delete('session/{session_id}', [EventMediaController::class, 'deleteSessionMedia']);
+   Route::prefix('events')->name('events.')->group(function () {
+
+    // Combined API for simple events (no media)
+Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
+    ->name('create-bulk');
+
+    Route::put('{eventId}/edit-bulk', [EventCreationController::class, 'createEventBulk'])
+    ->name('edit-bulk');
+        
+        // Step 1: Basic Info (Create new or Edit existing)
+        Route::post('basic-info', [EventCreationController::class, 'handleBasicInfo'])
+            ->name('basic-info.create');
+        Route::put('{eventId}/basic-info', [EventCreationController::class, 'handleBasicInfo'])
+            ->name('basic-info.edit');
+        
+        // Step 2: Venue & Location
+        Route::put('{eventId}/venue-location', [EventCreationController::class, 'handleVenueLocation'])
+            ->name('venue-location');
+        
+        // Step 3: Date & Time
+        Route::put('{eventId}/date-time', [EventCreationController::class, 'handleDateTime'])
+            ->name('date-time');
+        
+        // Step 4: Attendees Setup
+        Route::put('{eventId}/attendees-setup', [EventCreationController::class, 'handleAttendeesSetup'])
+            ->name('attendees-setup');
+        
+        // Step 5: Token & Payment
+        Route::put('{eventId}/token-payment', [EventCreationController::class, 'handleTokenPayment'])
+            ->name('token-payment');
+        
+        // Step 6: Event History & Media
+        Route::put('{eventId}/event-history', [EventCreationController::class, 'handleEventHistory'])
+            ->name('event-history');
+        
+        // Step 7: Host Responsibilities
+        Route::put('{eventId}/host-responsibilities', [EventCreationController::class, 'handleHostResponsibilities'])
+            ->name('host-responsibilities');
+        
+        // Step 8: Preview
+        Route::post('{eventId}/preview', [EventCreationController::class, 'generatePreview'])
+            ->name('preview');
+        
+        // Final: Publish
+        Route::post('{eventId}/publish', [EventCreationController::class, 'publishEvent'])
+            ->name('publish');
+        
+        // Get Progress & Data
+        Route::get('{eventId}/progress', [EventCreationController::class, 'getEventProgress'])
+            ->name('progress');
+        
+        // Delete Draft
+        Route::delete('{eventId}/draft', [EventCreationController::class, 'deleteDraftEvent'])
+            ->name('delete-draft');
     });
+
+    // ========================================
+    // MEDIA UPLOAD ROUTES
+    // ========================================
     
-    // Event management routes
-    Route::prefix('events')->group(function () {
-        Route::post('create', [EventController::class, 'create']);
-        Route::get('my-events', [EventController::class, 'myEvents']);
-        Route::get('{eventId}', [EventController::class, 'show']);
-        Route::put('{eventId}', [EventController::class, 'update']);
-        Route::post('{eventId}/publish', [EventController::class, 'publish']);
-        Route::post('{eventId}/cancel', [EventController::class, 'cancel']);
+    Route::prefix('event-media')->name('event-media.')->group(function () {
+        Route::post('upload-media', [ApiEventMediaController::class, 'uploadMedia'])
+            ->name('upload-media');
+        Route::post('upload-itinerary', [ApiEventMediaController::class, 'uploadItinerary'])
+            ->name('upload-itinerary');
+        Route::get('session/{sessionId}', [ApiEventMediaController::class, 'getSessionMedia'])
+            ->name('session-media');
+        Route::delete('session/{sessionId}', [ApiEventMediaController::class, 'deleteSessionMedia'])
+            ->name('delete-session');
+    });
+
+
+     Route::prefix('home')->name('home.')->group(function () {
+        Route::get('/', [HomeScreenController::class, 'getHomeScreen'])
+            ->name('screen');
+        Route::get('category/{categoryId}', [HomeScreenController::class, 'getEventsByCategoryId'])
+            ->name('category-id')
+            ->where('categoryId', '[0-9]+');
+        Route::post('search', [HomeScreenController::class, 'searchEvents'])
+            ->name('search');
+        Route::post('filter', [HomeScreenController::class, 'applyFilters'])
+            ->name('filter');
     });
     
     

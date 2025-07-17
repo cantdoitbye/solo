@@ -27,11 +27,11 @@ class OnboardingService
         }
         
         $otp = $this->userRepository->generateOtp($user->id);
+     
         
-       
         return [
             'user_id' => $user->id,
-            'otp' => config('app.debug') ? $otp : null,
+            'otp' => config('app.debug') ? $otp : null, // Only return OTP in debug mode
             'message' => 'OTP sent successfully'
         ];
     }
@@ -135,7 +135,7 @@ class OnboardingService
             // Update user with referral code
             $this->userRepository->update($userId, [
                 'used_referral_code' => $referral->code,
-                'referral_points' => 50
+                'referral_points' => 50 // Bonus points for using referral
             ]);
             
             // Update referrer points
@@ -219,8 +219,9 @@ class OnboardingService
         ];
     }
 
-   public function setIntroductionAnswers(int $userId, array $answers): array
+  public function setIntroductionAnswers(int $userId, array $answers): array
 {
+    // Make answers optional - remove required field validation
     $validFields = [
         'what_i_care_about',
         'three_words_describe_me',
@@ -229,6 +230,7 @@ class OnboardingService
         'class_to_take'
     ];
     
+    // Filter answers to only include valid fields and remove empty values
     $filteredAnswers = [];
     foreach ($answers as $key => $value) {
         if (in_array($key, $validFields) && !empty(trim($value))) {

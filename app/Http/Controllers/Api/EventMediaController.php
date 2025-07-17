@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\EventMediaService;
@@ -9,25 +9,26 @@ use Illuminate\Support\Str;
 
 class EventMediaController extends Controller
 {
-    public function __construct(
-        private EventMediaService $eventMediaService
+   public function __construct(
+        private EventMediaService $mediaService
     ) {}
 
+    /**
+     * Upload media files
+     */
     public function uploadMedia(Request $request): JsonResponse
     {
         $request->validate([
-            'media' => 'required|array|max:10',
-            'media.*' => 'required|file|mimes:jpeg,png,webp,mp4,mov|max:51200', // 50MB max
-            'session_id' => 'nullable|string|uuid'
+            'files' => 'required|array|max:10',
+            'files.*' => 'file|mimes:jpeg,png,gif,mp4,avi,mov|max:51200', // 50MB
+            'session_id' => 'nullable|string'
         ]);
 
         try {
-            $sessionId = $request->session_id ?? Str::uuid()->toString();
-            
-            $result = $this->eventMediaService->uploadMedia(
+            $result = $this->mediaService->uploadMedia(
                 $request->user()->id,
-                $request->file('media'),
-                $sessionId
+                $request->file('files'),
+                $request->session_id
             );
 
             return response()->json([
@@ -42,20 +43,21 @@ class EventMediaController extends Controller
         }
     }
 
+    /**
+     * Upload itinerary file
+     */
     public function uploadItinerary(Request $request): JsonResponse
     {
         $request->validate([
-            'itinerary' => 'required|file|mimes:pdf,doc,docx|max:10240', // 10MB max
-            'session_id' => 'nullable|string|uuid'
+            'file' => 'required|file|mimes:pdf,doc,docx|max:10240', // 10MB
+            'session_id' => 'nullable|string'
         ]);
 
         try {
-            $sessionId = $request->session_id ?? Str::uuid()->toString();
-            
-            $result = $this->eventMediaService->uploadItinerary(
+            $result = $this->mediaService->uploadItinerary(
                 $request->user()->id,
-                $request->file('itinerary'),
-                $sessionId
+                $request->file('file'),
+                $request->session_id
             );
 
             return response()->json([
@@ -70,14 +72,13 @@ class EventMediaController extends Controller
         }
     }
 
-    public function getSessionMedia(Request $request): JsonResponse
+    /**
+     * Get session media
+     */
+    public function getSessionMedia(Request $request, string $sessionId): JsonResponse
     {
-        $request->validate([
-            'session_id' => 'required|string|uuid'
-        ]);
-
         try {
-            $result = $this->eventMediaService->getSessionMedia($request->session_id);
+            $result = $this->mediaService->getSessionMedia($sessionId);
 
             return response()->json([
                 'success' => true,
@@ -91,14 +92,13 @@ class EventMediaController extends Controller
         }
     }
 
-    public function deleteSessionMedia(Request $request): JsonResponse
+    /**
+     * Delete session media
+     */
+    public function deleteSessionMedia(Request $request, string $sessionId): JsonResponse
     {
-        $request->validate([
-            'session_id' => 'required|string|uuid'
-        ]);
-
         try {
-            $result = $this->eventMediaService->deleteSessionMedia($request->session_id);
+            $result = $this->mediaService->deleteSessionMedia($sessionId);
 
             return response()->json([
                 'success' => true,

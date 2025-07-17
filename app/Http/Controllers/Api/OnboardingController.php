@@ -268,7 +268,6 @@ class OnboardingController extends Controller
 
    public function setIntroductionAnswers(Request $request): JsonResponse
 {
-    // Get dynamic validation rules from database
     $questions = $this->questionRepository->getAllActiveQuestions();
     $validationRules = [
         'user_id' => 'required|integer|exists:users,id',
@@ -276,7 +275,6 @@ class OnboardingController extends Controller
     ];
 
     foreach ($questions as $question) {
-        // Make all questions optional since the whole answers object is optional
         $rule = 'nullable|string|max:' . $question['max_length'];
         $validationRules['answers.' . $question['question_key']] = $rule;
     }
