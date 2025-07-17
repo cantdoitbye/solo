@@ -227,20 +227,28 @@ public function uploadSingleItinerary(int $userId, $file, string $sessionId): ar
             throw new \Exception('File size too large. Maximum size is 50MB.');
         }
     }
-
- private function validateItineraryFile($file): void
+private function validateItineraryFile($file): void
 {
     $allowedTypes = [
+        // Document formats
         'application/pdf',
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'text/plain', // Add support for .txt files
-        'application/vnd.oasis.opendocument.text' // Add support for .odt files
+        'text/plain',
+        'application/vnd.oasis.opendocument.text',
+        // Image formats
+        'image/jpeg',
+        'image/jpg', 
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'image/bmp',
+        'image/svg+xml'
     ];
     $maxSize = 10 * 1024 * 1024; // 10MB
 
     if (!in_array($file->getMimeType(), $allowedTypes)) {
-        throw new \Exception('Invalid file type. Only PDF, Word documents, text files, and ODT files are allowed.');
+        throw new \Exception('Invalid file type. Only PDF, Word documents, text files, ODT files, and images (JPEG, PNG, GIF, WebP, BMP, SVG) are allowed.');
     }
 
     if ($file->getSize() > $maxSize) {
