@@ -54,7 +54,6 @@ public function createEventBulk(Request $request, ?int $eventId = null): JsonRes
     'min_age' => 'required|integer|min:18|max:100',
     'max_age' => 'required|integer|min:18|max:100|gte:min_age',
     'gender_rule_enabled' => 'nullable|boolean',
-    'gender_composition_value' => 'nullable|integer|min:1|max:500',
  
     'allowed_genders' => 'nullable|array',
     'allowed_genders.*' => Rule::in(['male', 'female', 'gay', 'lesbian', 'trans', 'bisexual']),
@@ -63,25 +62,6 @@ public function createEventBulk(Request $request, ?int $eventId = null): JsonRes
     'token_cost_per_attendee' => 'required|numeric|min:0|max:1000'
 ]);
 
-$genderRuleEnabled = $request->input('gender_rule_enabled', false);
-    if ($genderRuleEnabled) {
-        $request->validate([
-            'gender_composition_value' => 'required|integer|min:1|max:500',
-        ], [
-            'gender_composition_value.required' => 'Gender composition value is required when gender rules are enabled.',
-        ]);
-        
-        // Additional validation: composition value should not exceed group size
-        $groupSize = $request->input('min_group_size');
-        $compositionValue = $request->input('gender_composition_value');
-        
-        if ($compositionValue > $groupSize) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gender composition value cannot exceed the group size.'
-            ], 422);
-        }
-    }
 
     try {
         $result = $this->eventCreationService->createEventBulk(
