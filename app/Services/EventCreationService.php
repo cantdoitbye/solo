@@ -68,7 +68,7 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
     
     // Step 5: Token & Payment
     'token_cost_per_attendee' => $data['token_cost_per_attendee'],
-    'total_tokens_display' => $groupSize * $data['token_cost_per_attendee'],
+        'total_tokens_display' => $minGroupSize * $data['token_cost_per_attendee'],
 ];
     
     if ($eventId) {
