@@ -43,26 +43,66 @@ class EventMediaService
     /**
      * Upload itinerary file with session tracking
      */
-    public function uploadItinerary(int $userId, $file, string $sessionId = null): array
-    {
-        $sessionId = $sessionId ?? Str::uuid()->toString();
-        
+ 
+/**
+ * Upload multiple itinerary files with session tracking
+ */
+public function uploadItinerary(int $userId, array $files, string $sessionId): array
+{
+    $sessionId = $sessionId ?? Str::uuid()->toString();
+    $uploadedItineraries = [];
+
+    foreach ($files as $file) {
         $this->validateItineraryFile($file);
         
         $itineraryData = $this->processAndStoreItinerary($file, $userId, $sessionId);
         $itinerary = EventItinerary::create($itineraryData);
-
-        return [
-            'session_id' => $sessionId,
-            'itinerary' => [
-                'id' => $itinerary->id,
-                'url' => $itinerary->file_url,
-                'filename' => $itinerary->original_filename,
-                'size' => $itinerary->file_size
-            ],
-            'message' => 'Itinerary uploaded successfully'
+        
+        $uploadedItineraries[] = [
+            'id' => $itinerary->id,
+            'url' => $itinerary->file_url,
+            'filename' => $itinerary->original_filename,
+            'size' => $itinerary->file_size,
+            'mime_type' => $itinerary->mime_type
         ];
     }
+
+    return [
+        'session_id' => $sessionId,
+        'uploaded_itineraries' => $uploadedItineraries,
+        'total_count' => count($uploadedItineraries),
+        'message' => count($uploadedItineraries) > 1 
+            ? 'Itinerary files uploaded successfully' 
+            : 'Itinerary file uploaded successfully'
+    ];
+}
+
+
+
+/**
+ *  method for single file upload
+ */
+public function uploadSingleItinerary(int $userId, $file, string $sessionId): array
+{
+    $sessionId = $sessionId ?? Str::uuid()->toString();
+    
+    $this->validateItineraryFile($file);
+    
+    $itineraryData = $this->processAndStoreItinerary($file, $userId, $sessionId);
+    $itinerary = EventItinerary::create($itineraryData);
+
+    return [
+        'session_id' => $sessionId,
+        'itinerary' => [
+            'id' => $itinerary->id,
+            'url' => $itinerary->file_url,
+            'filename' => $itinerary->original_filename,
+            'size' => $itinerary->file_size,
+            'mime_type' => $itinerary->mime_type
+        ],
+        'message' => 'Itinerary uploaded successfully'
+    ];
+}
 
     /**
      * Get media files for a session
@@ -188,19 +228,31 @@ class EventMediaService
         }
     }
 
-    private function validateItineraryFile($file): void
-    {
-        $allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-        $maxSize = 10 * 1024 * 1024; // 10MB
+ private function validateItineraryFile($file): void
+{
+    $allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain', // Add support for .txt files
+        'application/vnd.oasis.opendocument.text' // Add support for .odt files
+    ];
+    $maxSize = 10 * 1024 * 1024; // 10MB
 
-        if (!in_array($file->getMimeType(), $allowedTypes)) {
-            throw new \Exception('Invalid file type. Only PDF and Word documents are allowed.');
-        }
-
-        if ($file->getSize() > $maxSize) {
-            throw new \Exception('File size too large. Maximum size is 10MB.');
-        }
+    if (!in_array($file->getMimeType(), $allowedTypes)) {
+        throw new \Exception('Invalid file type. Only PDF, Word documents, text files, and ODT files are allowed.');
     }
+
+    if ($file->getSize() > $maxSize) {
+        throw new \Exception('File size too large. Maximum size is 10MB per file.');
+    }
+
+    // Additional validation for file name
+    $fileName = $file->getClientOriginalName();
+    if (strlen($fileName) > 255) {
+        throw new \Exception('File name is too long. Maximum 255 characters allowed.');
+    }
+}
 
     private function processAndStoreMedia($file, int $userId, string $sessionId): array
     {
@@ -242,27 +294,41 @@ class EventMediaService
         return $mediaData;
     }
 
-    private function processAndStoreItinerary($file, int $userId, string $sessionId): array
-    {
-        $originalName = $file->getClientOriginalName();
-        $extension = $file->getClientOriginalExtension();
-        $storedName = Str::uuid() . '.' . $extension;
-        $path = "event-itinerary/{$userId}/{$sessionId}/{$storedName}";
+   private function processAndStoreItinerary($file, int $userId, string $sessionId): array
+{
+    $originalName = $file->getClientOriginalName();
+    $extension = $file->getClientOriginalExtension();
+    $storedName = Str::uuid() . '.' . $extension;
+    $path = "event-itinerary/{$userId}/{$sessionId}/{$storedName}";
 
-        // Store file
-        $file->storeAs('', $path, 'public');
-        $url = Storage::url($path);
+    // Store file
+    $file->storeAs('', $path, 'public');
+    $url = Storage::url($path);
 
-        return [
-            'user_id' => $userId,
-            'original_filename' => $originalName,
-            'stored_filename' => $storedName,
-            'file_path' => $path,
-            'file_url' => $url,
-            'mime_type' => $file->getMimeType(),
-            'file_size' => $file->getSize(),
-            'upload_session_id' => $sessionId,
-            'is_attached_to_event' => false
-        ];
+    $itineraryData = [
+        'user_id' => $userId,
+        'original_filename' => $originalName,
+        'stored_filename' => $storedName,
+        'file_path' => $path,
+        'file_url' => $url,
+        'mime_type' => $file->getMimeType(),
+        'file_size' => $file->getSize(),
+        'upload_session_id' => $sessionId,
+        'is_attached_to_event' => false,
+        'uploaded_at' => now()
+    ];
+
+    // Get dimensions for images (similar to media files)
+    if (str_starts_with($file->getMimeType(), 'image/')) {
+        try {
+            [$width, $height] = getimagesize($file->getPathname());
+            $itineraryData['width'] = $width;
+            $itineraryData['height'] = $height;
+        } catch (\Exception $e) {
+            // Ignore if can't get dimensions
+        }
     }
+
+    return $itineraryData;
+}
 }
