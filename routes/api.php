@@ -87,7 +87,7 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
             ->name('preview');
         
         // Final: Publish
-        Route::post('{eventId}/publish', [EventCreationController::class, 'publishEvent'])
+        Route::put('{eventId}/publish', [EventCreationController::class, 'publishEvent'])
             ->name('publish');
         
         // Get Progress & Data
