@@ -498,6 +498,18 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
     {
         $groupSize = $data['min_group_size'];
         $selectedGenders = $data['allowed_genders'] ?? [];
+
+        $userEnabledGenderRules = $data['gender_rule_enabled'] ?? false;
+
+          if (!$userEnabledGenderRules) {
+        return [
+            'gender_rule_enabled' => false,
+            'gender_composition' => null,
+            'gender_composition_value' => null,
+            'allowed_genders' => $selectedGenders,
+        ];
+    }
+
         
         // Check if special genders are selected (gay, trans, lesbian, bisexual)
         $specialGenders = ['gay', 'trans', 'lesbian', 'bisexual'];
@@ -523,7 +535,7 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
                 throw new \Exception('Group size must be even when both male and female are selected');
             }
             
-            $genderCompositionValue = $groupSize / 2; // Equal split
+            $genderCompositionValue = $groupSize / 2;
             
             return [
                 'gender_rule_enabled' => true,

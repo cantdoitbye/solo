@@ -53,6 +53,7 @@ public function createEventBulk(Request $request, ?int $eventId = null): JsonRes
     'max_group_size' => 'nullable|integer|min:2|max:1000|gte:min_group_size',
     'min_age' => 'required|integer|min:18|max:100',
     'max_age' => 'required|integer|min:18|max:100|gte:min_age',
+    'gender_rule_enabled' => 'nullable|boolean', 
     'allowed_genders' => 'nullable|array',
     'allowed_genders.*' => Rule::in(['male', 'female', 'gay', 'lesbian', 'trans', 'bisexual']),
     
@@ -183,6 +184,7 @@ public function createEventBulk(Request $request, ?int $eventId = null): JsonRes
             'max_group_size' => 'nullable|integer|min:2|max:1000|gte:min_group_size',
             'min_age' => 'required|integer|min:18|max:100',
             'max_age' => 'required|integer|min:18|max:100|gte:min_age',
+            'gender_rule_enabled' => 'nullable|boolean', 
             'allowed_genders' => 'nullable|array',
             'allowed_genders.*' => Rule::in(['male', 'female', 'gay', 'lesbian', 'trans', 'bisexual'])
         ]);
