@@ -291,9 +291,6 @@ private function validateItineraryFile($file): void
 
     private function processAndStoreMedia($file, int $userId, string $sessionId): array
     {
-           if (!$file->isValid()) {
-        throw new \Exception('Invalid file upload');
-    }
         $originalName = $file->getClientOriginalName();
         $extension = $file->getClientOriginalExtension();
         $storedName = Str::uuid() . '.' . $extension;
@@ -317,9 +314,8 @@ private function validateItineraryFile($file): void
         // $file->storeAs('', $path, 'public');
         // $url = Storage::url($path);
 
-        // $mediaType = str_starts_with($file->getMimeType(), 'image/') ? 'image' : 'video';
+        $mediaType = str_starts_with($file->getMimeType(), 'image/') ? 'image' : 'video';
         
-        $mediaType = "";
         $mediaData = [
             'user_id' => $userId,
             'original_filename' => $originalName,
@@ -334,7 +330,7 @@ private function validateItineraryFile($file): void
         ];
 
         // Get dimensions for images (optional)
-        if ($mediaType === 'image') {
+        if ($mediaType === 'imagess') {
             try {
                 [$width, $height] = getimagesize($file->getPathname());
                 $mediaData['width'] = $width;
