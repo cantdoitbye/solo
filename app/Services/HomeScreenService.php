@@ -133,69 +133,126 @@ class HomeScreenService
     /**
      * Get Dynamic Categories from venue_categories table
      */
+    // private function getDynamicCategories(): array
+    // {
+    //     try {
+    //         $venueTypes = $this->venueTypeRepository->getAllActive();
+    //         $categories = [];
+
+    //         if (empty($venueTypes)) {
+    //             return $categories;
+    //         }
+
+    //         foreach ($venueTypes as $venueType) {
+    //             $venueTypeId = is_array($venueType) ? $venueType['id'] : $venueType->id;
+    //             $venueTypeName = is_array($venueType) ? $venueType['name'] : $venueType->name;
+                
+    //             $venueCategories = $this->venueCategoryRepository->getByVenueType($venueTypeId);
+                
+    //             if (empty($venueCategories)) {
+    //                 continue;
+    //             }
+                
+    //             foreach ($venueCategories as $category) {
+    //                 $categoryId = is_array($category) ? $category['id'] : $category->id;
+    //                 $categoryName = is_array($category) ? $category['name'] : $category->name;
+    //                 $categorySlug = is_array($category) ? ($category['slug'] ?? strtolower(str_replace(' ', '_', $categoryName))) : ($category->slug ?? strtolower(str_replace(' ', '_', $categoryName)));
+    //                 $categoryDescription = is_array($category) ? ($category['description'] ?? null) : $category->description;
+    //                 $categoryIcon = is_array($category) ? ($category['icon'] ?? null) : $category->icon;
+    //                 $categorySortOrder = is_array($category) ? ($category['sort_order'] ?? 0) : ($category->sort_order ?? 0);
+                    
+    //                 $eventCount = $this->eventRepository->getCategoryIdCount($categoryId);
+                    
+    //                 $categories[] = [
+    //                     'id' => $categoryId,
+    //                     'name' => $categoryName,
+    //                     'slug' => $categorySlug,
+    //                     'description' => $categoryDescription,
+    //                     'icon' => $categoryIcon ?: $this->getDefaultCategoryIcon($categoryName),
+    //                     'color' => $this->getDefaultCategoryColor($categoryName),
+    //                     'venue_type' => [
+    //                         'id' => $venueTypeId,
+    //                         'name' => $venueTypeName
+    //                     ],
+    //                     'event_count' => $eventCount,
+    //                     'sort_order' => $categorySortOrder
+    //                 ];
+    //             }
+    //         }
+
+    //         // Sort by sort_order and event_count
+    //         usort($categories, function($a, $b) {
+    //             if ($a['sort_order'] === $b['sort_order']) {
+    //                 return $b['event_count'] - $a['event_count'];
+    //             }
+    //             return $a['sort_order'] - $b['sort_order'];
+    //         });
+
+    //         return $categories;
+
+    //     } catch (\Exception $e) {
+    //         // Return empty array if there's an error, log it
+    //         \Log::error('Error getting dynamic categories: ' . $e->getMessage());
+    //         return [];
+    //     }
+    // }
+
     private function getDynamicCategories(): array
-    {
-        try {
-            $venueTypes = $this->venueTypeRepository->getAllActive();
-            $categories = [];
+{
+    try {
+        $venueTypes = $this->venueTypeRepository->getAllActive();
+        $categories = [];
 
-            if (empty($venueTypes)) {
-                return $categories;
-            }
-
-            foreach ($venueTypes as $venueType) {
-                $venueTypeId = is_array($venueType) ? $venueType['id'] : $venueType->id;
-                $venueTypeName = is_array($venueType) ? $venueType['name'] : $venueType->name;
-                
-                $venueCategories = $this->venueCategoryRepository->getByVenueType($venueTypeId);
-                
-                if (empty($venueCategories)) {
-                    continue;
-                }
-                
-                foreach ($venueCategories as $category) {
-                    $categoryId = is_array($category) ? $category['id'] : $category->id;
-                    $categoryName = is_array($category) ? $category['name'] : $category->name;
-                    $categorySlug = is_array($category) ? ($category['slug'] ?? strtolower(str_replace(' ', '_', $categoryName))) : ($category->slug ?? strtolower(str_replace(' ', '_', $categoryName)));
-                    $categoryDescription = is_array($category) ? ($category['description'] ?? null) : $category->description;
-                    $categoryIcon = is_array($category) ? ($category['icon'] ?? null) : $category->icon;
-                    $categorySortOrder = is_array($category) ? ($category['sort_order'] ?? 0) : ($category->sort_order ?? 0);
-                    
-                    $eventCount = $this->eventRepository->getCategoryIdCount($categoryId);
-                    
-                    $categories[] = [
-                        'id' => $categoryId,
-                        'name' => $categoryName,
-                        'slug' => $categorySlug,
-                        'description' => $categoryDescription,
-                        'icon' => $categoryIcon ?: $this->getDefaultCategoryIcon($categoryName),
-                        'color' => $this->getDefaultCategoryColor($categoryName),
-                        'venue_type' => [
-                            'id' => $venueTypeId,
-                            'name' => $venueTypeName
-                        ],
-                        'event_count' => $eventCount,
-                        'sort_order' => $categorySortOrder
-                    ];
-                }
-            }
-
-            // Sort by sort_order and event_count
-            usort($categories, function($a, $b) {
-                if ($a['sort_order'] === $b['sort_order']) {
-                    return $b['event_count'] - $a['event_count']; // Higher event count first
-                }
-                return $a['sort_order'] - $b['sort_order']; // Lower sort_order first
-            });
-
+        if (empty($venueTypes)) {
             return $categories;
-
-        } catch (\Exception $e) {
-            // Return empty array if there's an error, log it
-            \Log::error('Error getting dynamic categories: ' . $e->getMessage());
-            return [];
         }
+
+        foreach ($venueTypes as $venueType) {
+            $venueTypeId = is_array($venueType) ? $venueType['id'] : $venueType->id;
+            $venueTypeName = is_array($venueType) ? $venueType['name'] : $venueType->name;
+
+            $venueCategories = $this->venueCategoryRepository->getByVenueType($venueTypeId);
+
+            foreach ($venueCategories as $category) {
+                $categoryId = is_array($category) ? $category['id'] : $category->id;
+                $categoryName = is_array($category) ? $category['name'] : $category->name;
+                $categorySlug = is_array($category) ? $category['slug'] : $category->slug;
+                $categoryDescription = is_array($category) ? ($category['description'] ?? null) : $category->description;
+                $categoryIcon = is_array($category) ? ($category['icon'] ?? null) : $category->icon;
+                $categorySortOrder = is_array($category) ? ($category['sort_order'] ?? 999) : ($category->sort_order ?? 999);
+
+                $eventCount = $this->eventRepository->getCategoryIdCount($categoryId);
+                
+                // Get emoji icon and combine with existing icon
+                $emojiIcon = $this->getDefaultCategoryIcon($categoryName);
+                $combinedIcon = $categoryIcon ? "{$emojiIcon} {$categoryIcon}" : $emojiIcon;
+
+                $categories[] = [
+                    'id' => $categoryId,
+                    'name' => $categoryName,
+                    'slug' => $categorySlug,
+                    'description' => $categoryDescription,
+                    'icon' => $combinedIcon,
+                    'color' => $this->getDefaultCategoryColor($categoryName),
+                    'venue_type' => [
+                        'id' => $venueTypeId,
+                        'name' => $venueTypeName
+                    ],
+                    'event_count' => $eventCount,
+                    'sort_order' => $categorySortOrder
+                ];
+            }
+        }
+
+        usort($categories, fn($a, $b) => $a['sort_order'] <=> $b['sort_order']);
+
+        return $categories;
+
+    } catch (\Exception $e) {
+        \Log::error('Error getting dynamic categories: ' . $e->getMessage());
+        return [];
     }
+}
 
     /**
      * Get Category Events using dynamic categories
