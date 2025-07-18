@@ -291,6 +291,9 @@ private function validateItineraryFile($file): void
 
     private function processAndStoreMedia($file, int $userId, string $sessionId): array
     {
+           if (!$file->isValid()) {
+        throw new \Exception('Invalid file upload');
+    }
         $originalName = $file->getClientOriginalName();
         $extension = $file->getClientOriginalExtension();
         $storedName = Str::uuid() . '.' . $extension;
