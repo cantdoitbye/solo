@@ -17,11 +17,18 @@ class EventMediaService
     {
         $sessionId = $sessionId ?? Str::uuid()->toString();
         $uploadedMedia = [];
+            $event = Event::where('session_id', $sessionId)->first();
+
 
         foreach ($files as $file) {
             $this->validateMediaFile($file);
             
             $mediaData = $this->processAndStoreMedia($file, $userId, $sessionId);
+
+             if ($event) {
+            $mediaData['event_id'] = $event->id;
+            $mediaData['is_attached_to_event'] = true;
+        }
             $media = EventMedia::create($mediaData);
             
             $uploadedMedia[] = [
@@ -52,11 +59,17 @@ public function uploadItinerary(int $userId, array $files, string $sessionId): a
 {
     $sessionId = $sessionId ?? Str::uuid()->toString();
     $uploadedItineraries = [];
+        $event = Event::where('session_id', $sessionId)->first();
+
 
     foreach ($files as $file) {
         $this->validateItineraryFile($file);
         
         $itineraryData = $this->processAndStoreItinerary($file, $userId, $sessionId);
+         if ($event) {
+            $itineraryData['event_id'] = $event->id;
+            $itineraryData['is_attached_to_event'] = true;
+        }
         $itinerary = EventItinerary::create($itineraryData);
         
         $uploadedItineraries[] = [
