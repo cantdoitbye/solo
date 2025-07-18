@@ -249,6 +249,8 @@ public function createEventBulk(Request $request, ?int $eventId = null): JsonRes
         ]);
 
         try {
+
+            
             $result = $this->eventCreationService->handleEventHistory(
                 $eventId,
                 $request->user()->id,

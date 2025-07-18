@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Event;
 use App\Models\EventMedia;
 use App\Models\EventItinerary;
 use Illuminate\Support\Facades\Storage;
@@ -136,6 +137,19 @@ public function uploadSingleItinerary(int $userId, $file, string $sessionId): ar
         ];
     }
 
+
+    public function attachMediaToEventBySession(string $sessionId): array
+{
+    // Find event by session_id
+    $event = Event::where('session_id', $sessionId)->first();
+    
+    if (!$event) {
+        throw new \Exception('Event not found for this session');
+    }
+    
+    // Attach media to the found event
+    return $this->attachMediaToEvent($event->id, $sessionId);
+}
     /**
      * Attach media to event (called in step 6)
      */

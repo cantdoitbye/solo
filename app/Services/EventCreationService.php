@@ -301,7 +301,9 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
         // Handle media attachments
         $mediaAttached = [];
         if (isset($data['media_session_id']) && !empty($data['media_session_id'])) {
-            $mediaAttached = $this->mediaService->attachMediaToEvent($eventId, $data['media_session_id']);
+            // $mediaAttached = $this->mediaService->attachMediaToEvent($eventId, $data['media_session_id']);
+                    $mediaAttached= $this->mediaService->attachMediaToEventBySession($data['media_session_id']);
+
         }
 
         $this->updateEventStep($event, $updateData, 'event_history');
