@@ -442,8 +442,9 @@ class HomeScreenService
         
         // return $images;
         // Return default image based on venue category
-        $categoryName = $event['venue_category']['name'] ?? 'default';
-        return $this->getDefaultImageByCategory($categoryName);
+        // $categoryName = $event['venue_category']['name'] ?? 'default';
+        // return $this->getDefaultImageByCategory($categoryName);
+        return null;
     }
 
     private function getDefaultImageByCategory(string $categoryName): string
