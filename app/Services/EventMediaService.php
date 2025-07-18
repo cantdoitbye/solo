@@ -340,38 +340,24 @@ private function validateItineraryFile($file): void
     return $mediaData;
 }
 
-
-   private function processAndStoreItinerary($file, int $userId, string $sessionId): array
+private function processAndStoreItinerary($file, int $userId, string $sessionId): array
 {
     $originalName = $file->getClientOriginalName();
     $extension = $file->getClientOriginalExtension();
     $storedName = Str::uuid() . '.' . $extension;
-    // $path = "event-itinerary/{$userId}/{$sessionId}/{$storedName}";
 
-      // Store in public folder instead of storage
-    $path = "event-itinerary/{$userId}/{$sessionId}/{$storedName}";
+    // File path and public path
+    $path = "event-itinerary/{$userId}/{$sessionId}";
+    $fullPath = "{$path}/{$storedName}";
     $publicPath = public_path($path);
-    
-    // Create directory if it doesn't exist
-    if (!file_exists(dirname($publicPath))) {
-        mkdir(dirname($publicPath), 0755, true);
-    }
-    
-    // Move file to public directory
-    $file->move(dirname($publicPath), basename($publicPath));
-    
-    // URL will be relative to public folder
-    $url = url($path);
-    // Store file
-    // $file->storeAs('', $path, 'public');
-    // $url = Storage::url($path);
 
+    // Prepare data before moving the file
     $itineraryData = [
         'user_id' => $userId,
         'original_filename' => $originalName,
         'stored_filename' => $storedName,
         'file_path' => $path,
-        'file_url' => $url,
+        'file_url' => '', // will be set after move
         'mime_type' => $file->getMimeType(),
         'file_size' => $file->getSize(),
         'upload_session_id' => $sessionId,
@@ -379,7 +365,7 @@ private function validateItineraryFile($file): void
         'uploaded_at' => now()
     ];
 
-    // Get dimensions for images (similar to media files)
+    // If it's an image, get dimensions before move()
     if (str_starts_with($file->getMimeType(), 'image/')) {
         try {
             [$width, $height] = getimagesize($file->getPathname());
@@ -390,6 +376,18 @@ private function validateItineraryFile($file): void
         }
     }
 
+    // Ensure directory exists
+    if (!file_exists($publicPath)) {
+        mkdir($publicPath, 0755, true);
+    }
+
+    // Move the file after all reads
+    $file->move($publicPath, $storedName);
+
+    // Set the full URL
+    $itineraryData['file_url'] = url($fullPath);
+
     return $itineraryData;
 }
+
 }
