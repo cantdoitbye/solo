@@ -294,22 +294,22 @@ private function validateItineraryFile($file): void
         $originalName = $file->getClientOriginalName();
         $extension = $file->getClientOriginalExtension();
         $storedName = Str::uuid() . '.' . $extension;
-        $path = "event-media/{$userId}/{$sessionId}/{$storedName}";
+        // $path = "event-media/{$userId}/{$sessionId}/{$storedName}";
 
-         // Store in public folder instead of storage
-    $path = "event-media/{$userId}/{$sessionId}/{$storedName}";
+          $path = "event-media/{$userId}/{$sessionId}";
     $publicPath = public_path($path);
     
     // Create directory if it doesn't exist
-    if (!file_exists(dirname($publicPath))) {
-        mkdir(dirname($publicPath), 0755, true);
+    if (!file_exists($publicPath)) {
+        mkdir($publicPath, 0755, true);
     }
     
-    // Move file to public directory
-    $file->move(dirname($publicPath), basename($publicPath));
+    // Move uploaded file to public directory
+    $file->move($publicPath, $storedName);
     
-    // URL will be relative to public folder
-    $url = url($path);
+    // Full path and URL
+    $fullPath = "{$path}/{$storedName}";
+    $url = url($fullPath);
         // Store file
         // $file->storeAs('', $path, 'public');
         // $url = Storage::url($path);
@@ -348,7 +348,7 @@ private function validateItineraryFile($file): void
     $originalName = $file->getClientOriginalName();
     $extension = $file->getClientOriginalExtension();
     $storedName = Str::uuid() . '.' . $extension;
-    $path = "event-itinerary/{$userId}/{$sessionId}/{$storedName}";
+    // $path = "event-itinerary/{$userId}/{$sessionId}/{$storedName}";
 
       // Store in public folder instead of storage
     $path = "event-itinerary/{$userId}/{$sessionId}/{$storedName}";
