@@ -44,7 +44,7 @@ class HomeScreenService
             'hot_in_demand' => $hotEvents,
             'recent_events' => $recentEvents,
             'categories' => $categories,
-            'category_events' => $categoryEvents,
+            // 'category_events' => $categoryEvents,
             'total_events_count' => $this->getTotalEventsCount()
         ];
     }
