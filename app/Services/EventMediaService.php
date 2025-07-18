@@ -314,8 +314,9 @@ private function validateItineraryFile($file): void
         // $file->storeAs('', $path, 'public');
         // $url = Storage::url($path);
 
-        $mediaType = str_starts_with($file->getMimeType(), 'image/') ? 'image' : 'video';
+        // $mediaType = str_starts_with($file->getMimeType(), 'image/') ? 'image' : 'video';
         
+        $mediaType = "";
         $mediaData = [
             'user_id' => $userId,
             'original_filename' => $originalName,
