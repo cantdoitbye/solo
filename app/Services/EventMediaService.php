@@ -296,9 +296,23 @@ private function validateItineraryFile($file): void
         $storedName = Str::uuid() . '.' . $extension;
         $path = "event-media/{$userId}/{$sessionId}/{$storedName}";
 
+         // Store in public folder instead of storage
+    $path = "event-media/{$userId}/{$sessionId}/{$storedName}";
+    $publicPath = public_path($path);
+    
+    // Create directory if it doesn't exist
+    if (!file_exists(dirname($publicPath))) {
+        mkdir(dirname($publicPath), 0755, true);
+    }
+    
+    // Move file to public directory
+    $file->move(dirname($publicPath), basename($publicPath));
+    
+    // URL will be relative to public folder
+    $url = url($path);
         // Store file
-        $file->storeAs('', $path, 'public');
-        $url = Storage::url($path);
+        // $file->storeAs('', $path, 'public');
+        // $url = Storage::url($path);
 
         $mediaType = str_starts_with($file->getMimeType(), 'image/') ? 'image' : 'video';
         
@@ -336,9 +350,23 @@ private function validateItineraryFile($file): void
     $storedName = Str::uuid() . '.' . $extension;
     $path = "event-itinerary/{$userId}/{$sessionId}/{$storedName}";
 
+      // Store in public folder instead of storage
+    $path = "event-itinerary/{$userId}/{$sessionId}/{$storedName}";
+    $publicPath = public_path($path);
+    
+    // Create directory if it doesn't exist
+    if (!file_exists(dirname($publicPath))) {
+        mkdir(dirname($publicPath), 0755, true);
+    }
+    
+    // Move file to public directory
+    $file->move(dirname($publicPath), basename($publicPath));
+    
+    // URL will be relative to public folder
+    $url = url($path);
     // Store file
-    $file->storeAs('', $path, 'public');
-    $url = Storage::url($path);
+    // $file->storeAs('', $path, 'public');
+    // $url = Storage::url($path);
 
     $itineraryData = [
         'user_id' => $userId,
