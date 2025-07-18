@@ -289,59 +289,57 @@ private function validateItineraryFile($file): void
     }
 }
 
-    private function processAndStoreMedia($file, int $userId, string $sessionId): array
-    {
-        $originalName = $file->getClientOriginalName();
-        $extension = $file->getClientOriginalExtension();
-        $storedName = Str::uuid() . '.' . $extension;
-        // $path = "event-media/{$userId}/{$sessionId}/{$storedName}";
+  private function processAndStoreMedia($file, int $userId, string $sessionId): array
+{
+    $originalName = $file->getClientOriginalName();
+    $extension = $file->getClientOriginalExtension();
+    $storedName = Str::uuid() . '.' . $extension;
 
-          $path = "event-media/{$userId}/{$sessionId}";
+    $path = "event-media/{$userId}/{$sessionId}";
     $publicPath = public_path($path);
-    
+
+    $mediaType = str_starts_with($file->getMimeType(), 'image/') ? 'image' : 'video';
+
+    // Prepare media data
+    $mediaData = [
+        'user_id' => $userId,
+        'original_filename' => $originalName,
+        'stored_filename' => $storedName,
+        'file_path' => $path,
+        'file_url' => '', // will be filled after move
+        'media_type' => $mediaType,
+        'mime_type' => $file->getMimeType(),
+        'file_size' => $file->getSize(),
+        'upload_session_id' => $sessionId,
+        'is_attached_to_event' => false
+    ];
+
+    // Get dimensions for images before move
+    if ($mediaType === 'image') {
+        try {
+            [$width, $height] = getimagesize($file->getPathname());
+            $mediaData['width'] = $width;
+            $mediaData['height'] = $height;
+        } catch (\Exception $e) {
+            // Ignore if dimensions can't be fetched
+        }
+    }
+
     // Create directory if it doesn't exist
     if (!file_exists($publicPath)) {
         mkdir($publicPath, 0755, true);
     }
-    
+
     // Move uploaded file to public directory
     $file->move($publicPath, $storedName);
-    
+
     // Full path and URL
     $fullPath = "{$path}/{$storedName}";
-    $url = url($fullPath);
-        // Store file
-        // $file->storeAs('', $path, 'public');
-        // $url = Storage::url($path);
+    $mediaData['file_url'] = url($fullPath);
 
-        $mediaType = str_starts_with($file->getMimeType(), 'image/') ? 'image' : 'video';
-        
-        $mediaData = [
-            'user_id' => $userId,
-            'original_filename' => $originalName,
-            'stored_filename' => $storedName,
-            'file_path' => $path,
-            'file_url' => $url,
-            'media_type' => $mediaType,
-            'mime_type' => $file->getMimeType(),
-            'file_size' => $file->getSize(),
-            'upload_session_id' => $sessionId,
-            'is_attached_to_event' => false
-        ];
+    return $mediaData;
+}
 
-        // Get dimensions for images (optional)
-        if ($mediaType === 'imagess') {
-            try {
-                [$width, $height] = getimagesize($file->getPathname());
-                $mediaData['width'] = $width;
-                $mediaData['height'] = $height;
-            } catch (\Exception $e) {
-                // Ignore if can't get dimensions
-            }
-        }
-
-        return $mediaData;
-    }
 
    private function processAndStoreItinerary($file, int $userId, string $sessionId): array
 {
