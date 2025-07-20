@@ -241,19 +241,66 @@ public function uploadSingleItinerary(int $userId, $file, string $sessionId): ar
     // PRIVATE HELPER METHODS
     // ========================================
 
-    private function validateMediaFile($file): void
-    {
-        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'video/avi', 'video/mov'];
-        $maxSize = 50 * 1024 * 1024; // 50MB
+   private function validateMediaFile($file): void
+{
+    $allowedTypes = [
+        // Image types
+        'image/jpeg',
+        'image/jpg', 
+        'image/png',
+        'image/gif',
+        'image/bmp',
+        'image/webp',
+        'image/svg+xml',
+        
+        // Video types
+        'video/mp4',
+        'video/avi',
+        'video/mov',
+        'video/quicktime', // Alternative MIME for .mov
+        'video/x-msvideo', // Alternative MIME for .avi
+        'video/wmv',
+        'video/x-ms-wmv',
+        'video/flv',
+        'video/x-flv',
+        'video/webm',
+        'video/x-matroska', // For .mkv files
+        'video/3gpp',       // For .3gp files
+        
+        // Document types
+        'application/pdf',
+        'application/msword',                                               // .doc
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' // .docx
+    ];
 
-        if (!in_array($file->getMimeType(), $allowedTypes)) {
-            throw new \Exception('Invalid file type. Only images and videos are allowed.');
-        }
-
-        if ($file->getSize() > $maxSize) {
-            throw new \Exception('File size too large. Maximum size is 50MB.');
-        }
+    // Different size limits based on file type
+    $mimeType = $file->getMimeType();
+    $fileSize = $file->getSize();
+    
+    if (!in_array($mimeType, $allowedTypes)) {
+        throw new \Exception('Invalid file type. Only images, videos, and PDF documents are allowed.');
     }
+
+    // Set different size limits based on file type
+    if (strpos($mimeType, 'image/') === 0) {
+        $maxSize = 10 * 1024 * 1024; // 10MB for images
+        $fileType = 'Image';
+    } elseif (strpos($mimeType, 'video/') === 0) {
+        $maxSize = 100 * 1024 * 1024; // 100MB for videos
+        $fileType = 'Video';
+    } elseif ($mimeType === 'application/pdf' || strpos($mimeType, 'application/msword') === 0 || strpos($mimeType, 'application/vnd.openxml') === 0) {
+        $maxSize = 25 * 1024 * 1024; // 25MB for documents
+        $fileType = 'Document';
+    } else {
+        $maxSize = 50 * 1024 * 1024; // Default 50MB
+        $fileType = 'File';
+    }
+
+    if ($fileSize > $maxSize) {
+        $maxSizeMB = $maxSize / (1024 * 1024);
+        throw new \Exception("{$fileType} size too large. Maximum size is {$maxSizeMB}MB.");
+    }
+}
 private function validateItineraryFile($file): void
 {
     $allowedTypes = [

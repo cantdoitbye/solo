@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\VenueType;
 use App\Repositories\Contracts\EventRepositoryInterface;
 use App\Services\EventMediaService;
 use Illuminate\Support\Str;
@@ -28,9 +29,19 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
     // Process gender rules
     $genderRuleData = $this->processGenderRules($data);
     // $groupSize = $data['max_group_size'] ?? $data['min_group_size'];
-        $minGroupSize = $data['min_group_size'];
+        // $minGroupSize = $data['min_group_size'];
 
-    $maxGroupSize = null; 
+        if($data['venue_type']){
+            $venueType = VenueType::where('name', 'Closed Campus')->first();
+        }
+        else{
+            $venueType = VenueType::where('name', 'Open Area')->first();
+
+        }
+
+        $data['venue_type_id'] = $venueType->id;
+
+    // $maxGroupSize = null; 
     $eventData = [
     // Step 1: Basic Info
     'name' => $data['name'],
@@ -57,8 +68,8 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
     'timezone' => $data['timezone'] ?? 'UTC',
     
     // Step 4: Attendees Setup
-     'min_group_size' => $minGroupSize,
-        'max_group_size' => $maxGroupSize,
+     'min_group_size' => $data['min_group_size'],
+        'max_group_size' => $data['max_group_size'],
     'min_age' => $data['min_age'],
     'max_age' => $data['max_age'],
     'gender_rule_enabled' => $genderRuleData['gender_rule_enabled'],
@@ -68,7 +79,7 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
     
     // Step 5: Token & Payment
     'token_cost_per_attendee' => $data['token_cost_per_attendee'],
-        'total_tokens_display' => $minGroupSize * $data['token_cost_per_attendee'],
+        'total_tokens_display' => $data['max_group_size'] * $data['token_cost_per_attendee'],
 ];
     
     if ($eventId) {
@@ -388,13 +399,13 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
     {
         $event = $this->validateEventAccess($eventId, $hostId);
         
-        if ($event->current_step !== 'preview') {
-            throw new \Exception('Event must be previewed before publishing');
-        }
+        // if ($event->current_step !== 'preview') {
+        //     throw new \Exception('Event must be previewed before publishing');
+        // }
 
-        if (!$event->preview_generated_at) {
-            throw new \Exception('Please generate preview first');
-        }
+        // if (!$event->preview_generated_at) {
+        //     throw new \Exception('Please generate preview first');
+        // }
 
         $publishedEvent = $this->eventRepository->publishEvent($eventId);
 
@@ -402,7 +413,7 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
             'event_id' => $eventId,
             'status' => 'published',
             'published_at' => $publishedEvent->published_at,
-            'event_url' => url("/events/{$eventId}"),
+            // 'event_url' => url("/events/{$eventId}"),
             'message' => 'Event published successfully! Your event is now live.'
         ];
     }

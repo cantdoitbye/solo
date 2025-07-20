@@ -30,7 +30,8 @@ public function createEventBulk(Request $request, ?int $eventId = null): JsonRes
     'tags.*' => 'string|max:50',
     
     // Step 2 (ALL LOCATION FIELDS)
-    'venue_type_id' => 'required|integer|exists:venue_types,id',
+        'venue_type' => 'required|boolean',
+    // 'venue_type_id' => 'required|integer|exists:venue_types,id',
     'venue_category_id' => 'required|integer|exists:venue_categories,id',
     'venue_name' => 'nullable|string|max:255',
     'venue_address' => 'nullable|string|max:500',

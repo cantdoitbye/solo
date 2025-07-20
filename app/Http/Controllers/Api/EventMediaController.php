@@ -20,7 +20,7 @@ class EventMediaController extends Controller
     {
         $request->validate([
             'files' => 'required|array|max:10',
-            'files.*' => 'file|mimes:jpeg,png,gif,mp4,avi,mov|max:51200', // 50MB
+            'files.*' => 'file|mimes:jpeg,jpg,png,gif,bmp,webp,svg,mp4,avi,mov,wmv,flv,webm,mkv,m4v,3gp,pdf,doc,docx|max:10240',
             'session_id' => 'nullable|string'
         ]);
 
@@ -50,7 +50,7 @@ class EventMediaController extends Controller
 {
     $request->validate([
         'files' => 'required|array',
-        'files.*' => 'file|mimes:pdf,doc,docx,txt,odt,jpeg,jpg,png,gif,webp,bmp,svg|max:10240', // 10MB per file
+            'files.*' => 'file|mimes:jpeg,jpg,png,gif,bmp,webp,svg,mp4,avi,mov,wmv,flv,webm,mkv,m4v,3gp,pdf,doc,docx|max:10240',
         'session_id' => 'nullable|string'
     ], [
         'files.required' => 'At least one itinerary file is required.',
