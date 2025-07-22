@@ -10,6 +10,8 @@ use App\Services\EventJoinService;
 use App\Services\OlosService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
 
 class EventJoinController extends Controller
 {
@@ -163,7 +165,7 @@ class EventJoinController extends Controller
         ]);
 
     } catch (\Exception $e) {
-        \Log::error('Event details error:', ['error' => $e->getMessage()]);
+        Log::error('Event details error:', ['error' => $e->getMessage()]);
         
         return response()->json([
             'success' => false,
@@ -185,18 +187,20 @@ class EventJoinController extends Controller
             'members.*.member_name' => 'required|string|max:255',
             'members.*.member_email' => 'nullable|email|max:255',
             'members.*.member_contact' => 'nullable|string|max:20',
+             'members.*.govt_id_file_path' => 'nullable|file|mimes:jpeg,jpg,png,pdf|max:2048',
+
             // 'members.*.govt_id' => 'nullable|string|max:100',
             // 'members.*.govt_id_file_path' => 'nullable|string|max:500', // If file upload implemented
         ]);
 
-       foreach ($request->input('members', []) as $index => $member) {
-        $fileKey = "govt_id_file_path_{$index}";
-        if ($request->hasFile($fileKey)) {
-            $request->validate([
-                $fileKey => 'file|mimes:jpeg,jpg,png,pdf|max:2048' // max 2MB
-            ]);
-        }
-    }
+    //    foreach ($request->input('members', []) as $index => $member) {
+    //     $fileKey = "govt_id_file_path_{$index}";
+    //     if ($request->hasFile($fileKey)) {
+    //         $request->validate([
+    //             $fileKey => 'file|mimes:jpeg,jpg,png,pdf|max:2048' // max 2MB
+    //         ]);
+    //     }
+    // }
 
         try {
             $membersData = $request->input('members');
@@ -227,25 +231,43 @@ class EventJoinController extends Controller
 
     /**
  * Process government ID file uploads and add file paths to members data
- */private function processGovtIdUploads(Request $request, array $membersData): array
+ */
+ private function processGovtIdUploads(Request $request, array $membersData): array
 {
     foreach ($membersData as $index => &$member) {
-        $fileKey = "govt_id_file_path_{$index}";
-        
+        $fileKey = "members.$index.govt_id_file_path";
+        Log::info("Checking file for member {$index} at key: {$fileKey}");
+
         if ($request->hasFile($fileKey)) {
             $file = $request->file($fileKey);
 
             if ($file && $file->isValid()) {
-                $fileName = 'govt_id_member_' . $index . '_' . uniqid() . '_' . time() . '.' . $file->getClientOriginalExtension();
-                $filePath = $file->storeAs('govt_ids', $fileName, 'public');
+                try {
+                    $fileName = 'govt_id_member_' . $index . '_' . uniqid() . '_' . time() . '.' . $file->getClientOriginalExtension();
+                    $filePath = $file->storeAs('govt_ids', $fileName, 'public');
 
-                $member['govt_id_file_path'] = $filePath;
-                $member['govt_id_file_url'] = asset('storage/' . $filePath);
-                $member['govt_id_original_name'] = $file->getClientOriginalName();
-                $member['govt_id_file_size'] = $file->getSize();
-                $member['govt_id_mime_type'] = $file->getMimeType();
+                    $member['govt_id_file_path'] = $filePath;
+                    $member['govt_id_file_url'] = asset('storage/' . $filePath);
+                    $member['govt_id_original_name'] = $file->getClientOriginalName();
+                    $member['govt_id_file_size'] = $file->getSize();
+                    $member['govt_id_mime_type'] = $file->getMimeType();
+
+                    Log::info("Uploaded govt ID for member {$index}", [
+                        'path' => $filePath,
+                        'url' => $member['govt_id_file_url'],
+                    ]);
+
+                } catch (\Exception $e) {
+                    Log::error("Upload failed for member {$index}: " . $e->getMessage());
+                    throw new \Exception("Failed to upload govt ID for member " . ($index + 1));
+                }
+            } else {
+                Log::warning("Invalid file uploaded for member {$index}");
+                $member['govt_id_file_path'] = null;
+                $member['govt_id_file_url'] = null;
             }
         } else {
+            Log::info("No file uploaded for member {$index}");
             $member['govt_id_file_path'] = null;
             $member['govt_id_file_url'] = null;
         }
@@ -253,6 +275,7 @@ class EventJoinController extends Controller
 
     return $membersData;
 }
+
 
 
     /**
