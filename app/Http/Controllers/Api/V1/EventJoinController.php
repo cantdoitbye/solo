@@ -197,7 +197,6 @@ class EventJoinController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-                'error_type' => $this->getErrorType($e->getMessage())
             ], 400);
         }
     }
