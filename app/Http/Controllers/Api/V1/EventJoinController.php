@@ -35,6 +35,7 @@ class EventJoinController extends Controller
             'host', 
             'venueType', 
             'venueCategory', 
+            'media',
             'attendees' => function ($query) {
                 $query->whereIn('status', ['interested', 'confirmed']);
             }
@@ -70,6 +71,15 @@ class EventJoinController extends Controller
         // Get user's current Olos balance
         $userOlosBalance = app(OlosService::class)->getUserBalance($userId);
 
+          // Process event media to include file_url
+        $eventMedia = $event->media->map(function ($media) {
+            return [
+                'id' => $media->id,
+                'media_type' => $media->media_type,
+                'file_url' => $media->file_url,
+            ];
+        })->toArray();
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -81,7 +91,7 @@ class EventJoinController extends Controller
                     'event_time' => $event->event_time->format('H:i'),
                     'timezone' => $event->timezone,
                     'tags' => $event->tags,
-                    
+ 'media' => $eventMedia,                    
                     // Venue details
                     'venue' => [
                         'type' => $event->venueType->name ?? null,
