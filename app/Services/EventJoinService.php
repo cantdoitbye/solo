@@ -47,7 +47,7 @@ class EventJoinService
             $this->checkExistingAttendance($userId, $eventId);
             
             // 6. Validate Olos balance for total cost
-            $this->validateOlosBalance($userId, $totalCost);
+            // $this->validateOlosBalance($userId, $totalCost);
             
             // 7. Check event capacity for all members
             $this->validateEventCapacity($event, $totalMembers);
