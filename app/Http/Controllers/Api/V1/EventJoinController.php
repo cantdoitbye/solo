@@ -185,17 +185,35 @@ class EventJoinController extends Controller
             'members.*.member_name' => 'required|string|max:255',
             'members.*.member_email' => 'nullable|email|max:255',
             'members.*.member_contact' => 'nullable|string|max:20',
-            'members.*.govt_id' => 'nullable|string|max:100',
-            'members.*.govt_id_file_path' => 'nullable|string|max:500', // If file upload implemented
+            // 'members.*.govt_id' => 'nullable|string|max:100',
+            // 'members.*.govt_id_file_path' => 'nullable|string|max:500', // If file upload implemented
         ]);
+
+         // Then validate the files separately (if they exist)
+    $membersCount = count($request->input('members', []));
+    
+    // Create dynamic file validation rules using govt_id_file_path_X
+    $fileValidationRules = [];
+    for ($i = 0; $i < $membersCount; $i++) {
+        $fileValidationRules["govt_id_file_path_{$i}"] = 'nullable|image|mimes:jpeg,jpg,png,pdf|max:2048';
+    }
+    
+    // Only validate files if there are any file rules
+    if (!empty($fileValidationRules)) {
+        $request->validate($fileValidationRules);
+    }
 
         try {
             $membersData = $request->input('members');
+                    $processedMembersData = $this->processGovtIdUploads($request, $membersData);
+        
+
 
             $result = $this->eventJoinService->joinEvent(
                 $request->user()->id,
                 $eventId,
-                $membersData
+                $membersData,
+                $processedMembersData
             );
 
             return response()->json([
@@ -210,6 +228,58 @@ class EventJoinController extends Controller
             ], 400);
         }
     }
+
+
+    /**
+ * Process government ID file uploads and add file paths to members data
+ */
+private function processGovtIdUploads(Request $request, array $membersData): array
+{
+    foreach ($membersData as $index => &$member) {
+        // Use govt_id_file_path_X as the file key
+        $fileKey = "govt_id_file_path_{$index}";
+        
+        if ($request->hasFile($fileKey)) {
+            $file = $request->file($fileKey);
+            
+            if ($file && $file->isValid()) {
+                try {
+                    // Generate unique filename
+                    $fileName = 'govt_id_member_' . $index . '_' . uniqid() . '_' . time() . '.' . $file->getClientOriginalExtension();
+                    
+                    // Store file in storage/app/public/govt_ids
+                    $filePath = $file->storeAs('govt_ids', $fileName, 'public');
+                    
+                    // Add file information to member data using govt_id_file_path
+                    $member['govt_id_file_path'] = $filePath;
+                    $member['govt_id_file_url'] = asset('storage/' . $filePath);
+                    $member['govt_id_original_name'] = $file->getClientOriginalName();
+                    $member['govt_id_file_size'] = $file->getSize();
+                    $member['govt_id_mime_type'] = $file->getMimeType();
+                    
+                    \Log::info("Government ID uploaded successfully for member {$index}:", [
+                        'govt_id_file_path' => $filePath,
+                        'file_url' => $member['govt_id_file_url'],
+                        'original_name' => $file->getClientOriginalName()
+                    ]);
+                    
+                } catch (\Exception $e) {
+                    \Log::error("Failed to upload government ID for member {$index}:", [
+                        'error' => $e->getMessage()
+                    ]);
+                    throw new \Exception("Failed to upload government ID for member " . ($index + 1) . ": " . $e->getMessage());
+                }
+            }
+        } else {
+            \Log::info("No government ID file provided for member {$index}");
+            // Explicitly set these to null for members without files
+            $member['govt_id_file_path'] = null;
+            $member['govt_id_file_url'] = null;
+        }
+    }
+    
+    return $membersData;
+}
 
     /**
      * Get user's joined events
