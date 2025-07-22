@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\V1\EventController as V1EventController;
 use App\Http\Controllers\Api\V1\EventCreationController;
 use App\Http\Controllers\Api\V1\EventDataController as V1EventDataController;
+use App\Http\Controllers\Api\V1\EventJoinController;
 use App\Http\Controllers\Api\V1\EventMediaController;
 use App\Http\Controllers\Api\V1\HomeScreenController;
 use App\Http\Controllers\Api\V1\ProfileController;
@@ -125,6 +126,19 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
             ->name('search');
         Route::post('filter', [HomeScreenController::class, 'applyFilters'])
             ->name('filter');
+    });
+
+        Route::get('/events/{eventId}/details', [EventJoinController::class, 'getEventDetails']);
+
+      Route::post('/events/{eventId}/join', [EventJoinController::class, 'joinEvent']);
+    Route::post('/events/{eventId}/cancel', [EventJoinController::class, 'cancelAttendance']);
+    Route::get('/events/joined', [EventJoinController::class, 'getJoinedEvents']);
+    
+    // Olos Management Routes
+    Route::prefix('olos')->group(function () {
+        Route::get('/balance', [EventJoinController::class, 'getOlosBalance']);
+        Route::get('/transactions', [EventJoinController::class, 'getOlosTransactions']);
+        Route::post('/initialize', [EventJoinController::class, 'initializeOlos']);
     });
     
     
