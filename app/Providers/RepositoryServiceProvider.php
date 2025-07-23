@@ -44,6 +44,11 @@ class RepositoryServiceProvider extends ServiceProvider
                         $this->app->singleton(\App\Services\EventMediaService::class);
 
 
+        $this->app->bind(
+        \App\Repositories\Contracts\OneOnOneDateRepositoryInterface::class,
+        \App\Repositories\OneOnOneDateRepository::class
+    );                  
+
     }
 
     public function boot()

@@ -6,21 +6,28 @@ use App\Repositories\Contracts\EventRepositoryInterface;
 use App\Repositories\Contracts\VenueTypeRepositoryInterface;
 use App\Repositories\Contracts\VenueCategoryRepositoryInterface;
 use Carbon\Carbon;
+use App\Repositories\Contracts\OneOnOneDateRepositoryInterface;
+
 
 class HomeScreenService
 {
     private EventRepositoryInterface $eventRepository;
     private VenueTypeRepositoryInterface $venueTypeRepository;
     private VenueCategoryRepositoryInterface $venueCategoryRepository;
+    private OneOnOneDateRepositoryInterface $oneOnOneDateRepository;
 
     public function __construct(
         EventRepositoryInterface $eventRepository,
         VenueTypeRepositoryInterface $venueTypeRepository,
-        VenueCategoryRepositoryInterface $venueCategoryRepository
+        VenueCategoryRepositoryInterface $venueCategoryRepository,
+        OneOnOneDateRepositoryInterface $oneOnOneDateRepository
+
     ) {
         $this->eventRepository = $eventRepository;
         $this->venueTypeRepository = $venueTypeRepository;
         $this->venueCategoryRepository = $venueCategoryRepository;
+        $this->oneOnOneDateRepository = $oneOnOneDateRepository;
+
     }
 
     /**
@@ -80,20 +87,63 @@ class HomeScreenService
     /**
      * Apply Filters and Get Events
      */
-    public function applyFilters(array $filters, int $userId): array
+    // public function applyFilters(array $filters, int $userId): array
+    // {
+    //     $limit = $filters['limit'] ?? 10;
+    //     $offset = $filters['offset'] ?? 0;
+        
+    //     $events = $this->eventRepository->getFilteredEvents($filters, $limit, $offset);
+    //     $totalCount = $this->eventRepository->getFilteredEventsCount($filters);
+
+    //     return [
+    //         'applied_filters' => $this->formatAppliedFilters($filters),
+    //         'events' => $this->formatEventsForMobile($events, $userId),
+    //         'total_count' => $totalCount,
+    //         'has_more' => ($offset + $limit) < $totalCount
+    //     ];
+    // }
+
+      public function applyFilters(array $filters, int $userId): array
     {
         $limit = $filters['limit'] ?? 10;
         $offset = $filters['offset'] ?? 0;
         
-        $events = $this->eventRepository->getFilteredEvents($filters, $limit, $offset);
-        $totalCount = $this->eventRepository->getFilteredEventsCount($filters);
-
-        return [
+        $result = [
             'applied_filters' => $this->formatAppliedFilters($filters),
-            'events' => $this->formatEventsForMobile($events, $userId),
-            'total_count' => $totalCount,
-            'has_more' => ($offset + $limit) < $totalCount
+            'events' => [],
+            'one_on_one_dates' => [],
+            'total_count' => 0,
+            'has_more' => false
         ];
+
+        // Check what type of events to fetch
+        if (isset($filters['event_type'])) {
+            if ($filters['event_type'] === 'one-on-one') {
+                // Fetch only one-on-one dates
+                $oneOnOneDates = $this->oneOnOneDateRepository->getOneOnOneDates($filters, $limit, $offset);
+                $result['one_on_one_dates'] = $this->formatOneOnOneDatesForMobile($oneOnOneDates, $userId);
+                $result['total_count'] = count($oneOnOneDates);
+                $result['has_more'] = ($offset + $limit) < $result['total_count'];
+            } else {
+                // Fetch group events (regular events)
+                $events = $this->eventRepository->getFilteredEvents($filters, $limit, $offset);
+                $totalCount = $this->eventRepository->getFilteredEventsCount($filters);
+                
+                $result['events'] = $this->formatEventsForMobile($events, $userId);
+                $result['total_count'] = $totalCount;
+                $result['has_more'] = ($offset + $limit) < $totalCount;
+            }
+        } else {
+            // No specific type filter - return both
+            $events = $this->eventRepository->getFilteredEvents($filters, $limit, $offset);
+            $totalCount = $this->eventRepository->getFilteredEventsCount($filters);
+            
+            $result['events'] = $this->formatEventsForMobile($events, $userId);
+            $result['total_count'] = $totalCount;
+            $result['has_more'] = ($offset + $limit) < $totalCount;
+        }
+
+        return $result;
     }
 
     /**
@@ -491,5 +541,57 @@ class HomeScreenService
     private function getTotalEventsCount(): int
     {
         return $this->eventRepository->getTotalPublishedEventsCount();
+    }
+
+    private function formatOneOnOneDatesForMobile(array $dates, int $userId = null): array
+    {
+        return array_map(function ($date) use ($userId) {
+            // Handle array vs object conversion
+            $dateData = is_array($date) ? $date : $date->toArray();
+            
+            return [
+                'id' => $dateData['id'],
+                'name' => $dateData['name'],
+                'description' => $dateData['description'],
+                'host_name' => $dateData['host']['name'] ?? 'Unknown Host',
+                'date' => Carbon::parse($dateData['event_date'])->format('M j, Y'),
+                'time' => Carbon::parse($dateData['event_time'])->format('H:i'),
+                'location' => [
+                    'venue_name' => $dateData['venue_name'] ?? null,
+                    'venue_address' => $dateData['venue_address'] ?? null,
+                    'city' => $dateData['city'] ?? null,
+                    'address' => $dateData['venue_address'] ?? null,
+                    'google_place_id' => $dateData['google_place_id'] ?? null,
+                    'latitude' => $dateData['latitude'] ?? null,
+                    'longitude' => $dateData['longitude'] ?? null
+                ],
+                'cost' => [
+                    'token_cost' => $dateData['token_cost'] ?? 0,
+                    'currency' => 'Olas',
+                    'is_free' => ($dateData['token_cost'] ?? 0) == 0
+                ],
+                'image_url' => $this->getOneOnOneDateImageUrl($dateData),
+                'is_user_joined' => false, // For now, always false
+                'can_join' => $dateData['status'] === 'published' && $dateData['approval_status'] === 'approved',
+                'approval_status' => $dateData['approval_status'],
+                'type' => 'one_on_one_date' // Identifier for frontend
+            ];
+        }, $dates);
+    }
+
+      /**
+     * Get image URL for one-on-one date
+     */
+    private function getOneOnOneDateImageUrl(array $date): ?string
+    {
+        // Get first image from date media or return null
+        if (!empty($date['media']) && is_array($date['media'])) {
+            $images = array_filter($date['media'], fn($media) => ($media['media_type'] ?? '') === 'image');
+            if (!empty($images)) {
+                return array_values($images)[0]['file_url'] ?? null;
+            }
+        }
+        
+        return null;
     }
 }

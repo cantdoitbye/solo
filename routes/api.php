@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\EventDataController as V1EventDataController;
 use App\Http\Controllers\Api\V1\EventJoinController;
 use App\Http\Controllers\Api\V1\EventMediaController;
 use App\Http\Controllers\Api\V1\HomeScreenController;
+use App\Http\Controllers\Api\V1\OneOnOneDateController;
 use App\Http\Controllers\Api\V1\ProfileController;
 
 Route::prefix('onboarding')->group(function () {
@@ -140,6 +141,12 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
         Route::get('/transactions', [EventJoinController::class, 'getOlosTransactions']);
         Route::post('/initialize', [EventJoinController::class, 'initializeOlos']);
     });
+
+
+    Route::prefix('one-on-one-dates')->name('one-on-one-dates.')->group(function () {
+    Route::post('/', [OneOnOneDateController::class, 'createOneOnOneDate'])
+        ->name('create');
+});
     
     
 });
