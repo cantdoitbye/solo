@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\EventMediaController;
 use App\Http\Controllers\Api\V1\HomeScreenController;
 use App\Http\Controllers\Api\V1\OneOnOneDateController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\SuggestedLocationsController;
 
 Route::prefix('onboarding')->group(function () {
     Route::post('phone/initiate', [OnboardingController::class, 'initiatePhoneVerification']);
@@ -153,6 +154,11 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
           Route::post('/{dateId}/book', [OneOnOneDateController::class, 'bookOneOnOneDate'])
         ->name('book');
 });
+
+  Route::prefix('suggested-locations')->name('suggested-locations.')->group(function () {
+        Route::get('/', [SuggestedLocationsController::class, 'index'])->name('index');
+        Route::get('/category/{category}', [SuggestedLocationsController::class, 'getByCategory'])->name('by-category');
+    });
     
     
 });
