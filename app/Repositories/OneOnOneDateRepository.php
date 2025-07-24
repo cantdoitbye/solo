@@ -12,6 +12,11 @@ class OneOnOneDateRepository implements OneOnOneDateRepositoryInterface
         return OneOnOneDate::create($data);
     }
 
+       public function findByIdWithDetails(int $id): ?OneOnOneDate
+    {
+        return OneOnOneDate::with(['host', 'media'])->find($id);
+    }
+
     public function findById(int $id): ?OneOnOneDate
     {
         return OneOnOneDate::find($id);

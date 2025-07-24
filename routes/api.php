@@ -146,6 +146,12 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
     Route::prefix('one-on-one-dates')->name('one-on-one-dates.')->group(function () {
     Route::post('/', [OneOnOneDateController::class, 'createOneOnOneDate'])
         ->name('create');
+
+            Route::get('/{dateId}', [OneOnOneDateController::class, 'getOneOnOneDateById'])
+        ->name('details');
+
+          Route::post('/{dateId}/book', [OneOnOneDateController::class, 'bookOneOnOneDate'])
+        ->name('book');
 });
     
     

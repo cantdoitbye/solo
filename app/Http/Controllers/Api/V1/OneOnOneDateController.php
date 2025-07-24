@@ -13,6 +13,26 @@ class OneOnOneDateController extends Controller
         private OneOnOneDateService $oneOnOneDateService
     ) {}
 
+      /**
+     * Get 1:1 Date Details by ID
+     */
+    public function getOneOnOneDateById(Request $request, int $dateId): JsonResponse
+    {
+        try {
+            $userId = $request->user()->id;
+            $result = $this->oneOnOneDateService->getOneOnOneDateById($dateId, $userId);
+
+            return response()->json([
+                'success' => true,
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 404);
+        }
+    }
     /**
      * Create 1:1 Date with Media Upload
      */
@@ -68,6 +88,28 @@ class OneOnOneDateController extends Controller
                 'message' => 'Date Request Sent Successfully',
                 'data' => $result
             ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
+
+     /**
+     * Book 1:1 Date
+     */
+    public function bookOneOnOneDate(Request $request, int $dateId): JsonResponse
+    {
+        try {
+            $userId = $request->user()->id;
+            $result = $this->oneOnOneDateService->bookOneOnOneDate($dateId, $userId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Date Booked Successfully!',
+                'data' => $result
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

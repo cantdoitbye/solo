@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\OneOnOneDate;
 use App\Models\EventMedia;
+use App\Models\OneOnOneDateBooking;
 use App\Models\OneOnOneDateMedia;
 use App\Repositories\Contracts\OneOnOneDateRepositoryInterface;
 use Illuminate\Support\Facades\DB;
@@ -13,7 +14,36 @@ class OneOnOneDateService
     public function __construct(
         private OneOnOneDateRepositoryInterface $repository
     ) {}
+ public function getOneOnOneDateById(int $dateId, int $userId): array
+    {
+        $date = $this->repository->findByIdWithDetails($dateId);
+        
+        if (!$date) {
+            throw new \Exception('Date not found');
+        }
 
+        $dateData = is_array($date) ? $date : $date->toArray();
+        
+        return [
+            'id' => $dateData['id'],
+            'name' => $dateData['name'],
+            'description' => $dateData['description'],
+            'host' => [
+                'name' => $dateData['host']['name'] ?? 'Unknown Host',
+                'id' => $dateData['host']['id'] ?? null
+            ],
+            'date' => $dateData['event_date'],
+            'time' => $dateData['event_time'],
+            'location' => [
+                'venue_name' => $dateData['venue_name'],
+                'venue_address' => $dateData['venue_address'],
+                'city' => $dateData['city']
+            ],
+            'token_cost' => $dateData['token_cost'],
+            'media' => $dateData['media'] ?? [],
+            'can_book' => $dateData['status'] === 'published' && $dateData['approval_status'] === 'approved'
+        ];
+    }
     /**
      * Create a new 1:1 date with media upload
      */
@@ -168,5 +198,56 @@ class OneOnOneDateService
         if ($file->getSize() > 10485760) { // 10MB
             throw new \Exception('File size too large: ' . $file->getClientOriginalName());
         }
+    }
+
+
+    /**
+     * Book 1:1 date
+     */
+    public function bookOneOnOneDate(int $dateId, int $userId): array
+    {
+        return DB::transaction(function () use ($dateId, $userId) {
+            $date = $this->repository->findById($dateId);
+            
+            if (!$date) {
+                throw new \Exception('Date not found');
+            }
+
+            if ($date->host_id === $userId) {
+                throw new \Exception('You cannot book your own date');
+            }
+
+            if ($date->status !== 'published' || $date->approval_status !== 'approved') {
+                throw new \Exception('This date is not available for booking');
+            }
+
+            // Check if already booked
+            $existingBooking = OneOnOneDateBooking::where('one_on_one_date_id', $dateId)
+                                                  ->where('status', 'booked')
+                                                  ->first();
+
+            if ($existingBooking) {
+                throw new \Exception('This date is already booked');
+            }
+
+            // Create booking
+            $booking = OneOnOneDateBooking::create([
+                'one_on_one_date_id' => $dateId,
+                'user_id' => $userId,
+                'tokens_paid' => $date->token_cost,
+                'status' => 'booked',
+                'booked_at' => now()
+            ]);
+
+            return [
+                'booking_id' => $booking->id,
+                'date_name' => $date->name,
+                'host_name' => $date->host->name ?? 'Unknown Host',
+                'event_date' => $date->event_date->format('M j, Y'),
+                'event_time' => $date->event_time->format('H:i'),
+                'tokens_paid' => $booking->tokens_paid,
+                'status' => $booking->status
+            ];
+        });
     }
 }
