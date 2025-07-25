@@ -383,7 +383,7 @@ private function validateItineraryFile($file): void
     // Full path and URL
     $fullPath = "{$path}/{$storedName}";
     // $mediaData['file_url'] = $fullPath;
-    $mediaData['file_url'] = "/storage" . $fullPath;
+    $mediaData['file_url'] = "/storage/" . $fullPath;
 
 
     return $mediaData;
@@ -434,7 +434,7 @@ private function processAndStoreItinerary($file, int $userId, string $sessionId)
     $file->move($publicPath, $storedName);
 
     // Set the full URL
-    $itineraryData['file_url'] = $fullPath;
+    $itineraryData['file_url'] = "/storage/" . $fullPath;
 
     return $itineraryData;
 }
