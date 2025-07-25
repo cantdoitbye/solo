@@ -409,6 +409,10 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
 
         $publishedEvent = $this->eventRepository->publishEvent($eventId);
 
+          $chatService = app(ChatService::class);
+    $chatService->createEventGroupChat($publishedEvent);
+    
+
         return [
             'event_id' => $eventId,
             'status' => 'published',

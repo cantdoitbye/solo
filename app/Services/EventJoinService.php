@@ -61,6 +61,8 @@ class EventJoinService
             // 10. Update user's Olos balance info
             $userOlosSummary = $this->olosService->getUserOlosSummary($userId);
             
+               $chatService = app(ChatService::class);
+        $chatService->addUserToEventChat($eventId, $userId);
             return [
                 'success' => true,
                 'message' => 'Successfully joined the event!',

@@ -132,4 +132,63 @@ class User extends Authenticatable
             }
         });
     }
+
+
+ 
+// Chat-related relationships
+public function chatRoomMemberships(): HasMany
+{
+    return $this->hasMany(ChatRoomMember::class);
+}
+
+public function activeChatRoomMemberships(): HasMany
+{
+    return $this->hasMany(ChatRoomMember::class)->where('is_active', true);
+}
+
+public function chatRooms()
+{
+    return $this->belongsToMany(ChatRoom::class, 'chat_room_members')
+                ->withPivot(['joined_at', 'left_at', 'is_active', 'role', 'last_read_at', 'is_online', 'last_seen_at'])
+                ->withTimestamps();
+}
+
+public function activeChatRooms()
+{
+    return $this->belongsToMany(ChatRoom::class, 'chat_room_members')
+                ->wherePivot('is_active', true)
+                ->withPivot(['joined_at', 'left_at', 'is_active', 'role', 'last_read_at', 'is_online', 'last_seen_at'])
+                ->withTimestamps();
+}
+
+public function sentMessages(): HasMany
+{
+    return $this->hasMany(Message::class, 'sender_id');
+}
+
+public function createdChatRooms(): HasMany
+{
+    return $this->hasMany(ChatRoom::class, 'created_by');
+}
+
+// Helper methods for chat functionality
+public function joinChatRoom(ChatRoom $chatRoom, string $role = ChatRoomMember::ROLE_MEMBER): ChatRoomMember
+{
+    return $chatRoom->addMember($this->id, $role);
+}
+
+public function leaveChatRoom(ChatRoom $chatRoom): void
+{
+    $chatRoom->removeMember($this->id);
+}
+
+public function isMemberOfChatRoom(ChatRoom $chatRoom): bool
+{
+    return $chatRoom->isMember($this->id);
+}
+
+public function isAdminOfChatRoom(ChatRoom $chatRoom): bool
+{
+    return $chatRoom->isAdmin($this->id);
+}
 }

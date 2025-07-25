@@ -382,7 +382,9 @@ private function validateItineraryFile($file): void
 
     // Full path and URL
     $fullPath = "{$path}/{$storedName}";
-    $mediaData['file_url'] = $fullPath;
+    // $mediaData['file_url'] = $fullPath;
+    $mediaData['file_url'] = "/storage" . $fullPath;
+
 
     return $mediaData;
 }

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\EventDataController;
 use App\Http\Controllers\Api\EventMediaController as ApiEventMediaController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\OnboardingController;
+use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\EventController as V1EventController;
 use App\Http\Controllers\Api\V1\EventCreationController;
 use App\Http\Controllers\Api\V1\EventDataController as V1EventDataController;
@@ -158,6 +159,14 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
   Route::prefix('suggested-locations')->name('suggested-locations.')->group(function () {
         Route::get('/', [SuggestedLocationsController::class, 'index'])->name('index');
         Route::get('/category/{category}', [SuggestedLocationsController::class, 'getByCategory'])->name('by-category');
+    });
+
+
+     Route::prefix('chat')->name('chat.')->group(function () {
+        Route::get('rooms', [ChatController::class, 'getChatRooms'])->name('rooms');
+        Route::get('rooms/{chatRoomId}/messages', [ChatController::class, 'getChatMessages'])->name('messages');
+        Route::post('rooms/{chatRoomId}/send', [ChatController::class, 'sendMessage'])->name('send');
+        Route::post('personal/create', [ChatController::class, 'createPersonalChat'])->name('personal.create');
     });
     
     

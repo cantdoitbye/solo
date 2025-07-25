@@ -334,5 +334,18 @@ class Event extends Model
         ];
     }
 
+
+   
+
+public function hasChatRoom(): bool
+{
+    return !is_null($this->chatRoom);
+}
+
+public function getChatRoomId(): ?int
+{
+    return $this->chatRoom?->id;
+}
+
     
 }
