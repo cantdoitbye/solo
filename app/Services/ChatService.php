@@ -251,7 +251,7 @@ class ChatService
     {
         $messages = Message::where('chat_room_id', $chatRoomId)
 ->with([
-       'sender:id', 
+       'sender:id,name,profile_photo', 
        'replyTo:id,content,message_type,sender_id', 
        'replyTo.sender:id,name'
    ])      

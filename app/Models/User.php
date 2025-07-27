@@ -16,6 +16,7 @@ class User extends Authenticatable
    use HasApiTokens, Notifiable;
 
     protected $fillable = [
+        'name',
         'phone_number',
         'country_code',
         'phone_verified_at',
@@ -29,6 +30,7 @@ class User extends Authenticatable
         'discovery_sources',
         'interests',
         'bio',
+        'profile_photo',
         'introduction_answers',
         'onboarding_completed',
         'latitude',
