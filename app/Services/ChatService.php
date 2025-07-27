@@ -247,19 +247,16 @@ class ChatService
     /**
      * Get messages for a chat room
      */
- public function getChatMessages(int $chatRoomId, int $userId, int $page = 1, int $perPage = 50): array
+public function getChatMessages(int $chatRoomId, int $userId, int $page = 1, int $perPage = 50): array
 {
     // Get total count first
     $totalMessages = Message::where('chat_room_id', $chatRoomId)->count();
     $totalPages = ceil($totalMessages / $perPage);
     
-    // Calculate reverse page (last page becomes page 1)
-    $reversePage = $totalPages - $page + 1;
-    
-    // Ensure we don't go below page 1
-    if ($reversePage < 1) {
-        $reversePage = 1;
-    }
+    // For reverse pagination, we need to calculate the offset from the end
+    // Page 1 should get the last 50 messages (newest)
+    // Page 2 should get the next 50 messages before that, etc.
+    $offset = ($page - 1) * $perPage;
 
     $messages = Message::where('chat_room_id', $chatRoomId)
         ->with([
@@ -276,13 +273,16 @@ class ChatService
             'is_edited',
             'created_at'
         ])
-        ->orderBy('created_at', 'asc')
-        ->paginate($perPage, ['*'], 'page', $reversePage);
+        ->orderBy('created_at', 'desc') // Get newest first
+        ->skip($offset) // Skip messages from previous pages
+        ->take($perPage) // Take only the required number
+        ->get();
 
+    // Mark messages as read
     $this->markMessagesAsRead($chatRoomId, $userId);
 
-    // Reverse the messages order so newest is at bottom (chat style)
-    $formattedMessages = collect($messages->items())->reverse()->map(function ($message) use ($userId) {
+    // Reverse the order so oldest message in this batch is first (chat order)
+    $formattedMessages = $messages->reverse()->map(function ($message) use ($userId) {
         $formatted = [
             'id' => $message->id,
             'content' => $message->content,
@@ -317,12 +317,12 @@ class ChatService
         'messages' => $formattedMessages,
         'pagination' => [
             'current_page' => $page,
-            'per_page' => $messages->perPage(),
+            'per_page' => $perPage,
             'total_pages' => $totalPages,
             'total_messages' => $totalMessages,
-            'has_more_pages' => $page < $totalPages,
-            'is_first_page' => $page === 1,
-            'is_last_page' => $page === $totalPages
+            'has_more_pages' => $page < $totalPages, // Has older messages
+            'is_first_page' => $page === 1, // Is latest messages
+            'is_last_page' => $page === $totalPages // Is oldest messages
         ]
     ];
 }

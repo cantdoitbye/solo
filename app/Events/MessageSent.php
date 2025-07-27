@@ -60,7 +60,7 @@ class MessageSent implements ShouldBroadcast
                 'message_type' => $this->message->message_type,
                 'reply_to_message_id' => $this->message->reply_to_message_id,
                 'is_edited' => $this->message->is_edited,
-                'isSender' => $this->currentUserId ? ($this->message->sender_id === $this->currentUserId) : false,
+                'isSender' => $this->message->sender_id === $this->currentUserId,
                 'created_at' => $this->message->created_at->toISOString(),
                 'sender' => [
                     'id' => $this->message->sender->id,
