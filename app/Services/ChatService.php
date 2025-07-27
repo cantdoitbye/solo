@@ -145,7 +145,7 @@ class ChatService
         $message->load('sender', 'replyTo.sender');
 
         // Broadcast message to all chat room members except sender
-        broadcast(new MessageSent($message, $chatRoom))->toOthers();
+        broadcast(new MessageSent($message, $chatRoom,$senderId))->toOthers();
 
         return $message;
     }

@@ -17,11 +17,13 @@ class MessageSent implements ShouldBroadcast
 
     public $message;
     public $chatRoom;
+    public $currentUserId;
 
-    public function __construct(Message $message, ChatRoom $chatRoom)
+    public function __construct(Message $message, ChatRoom $chatRoom, int $currentUserId)
     {
         $this->message = $message->load('sender');
-        $this->chatRoom = $chatRoom;
+        $this->chatRoom = $chatRoom->load('event');
+        $this->currentUserId = $currentUserId;
     }
 
     /**
@@ -58,6 +60,7 @@ class MessageSent implements ShouldBroadcast
                 'message_type' => $this->message->message_type,
                 'reply_to_message_id' => $this->message->reply_to_message_id,
                 'is_edited' => $this->message->is_edited,
+                'isSender' => $this->currentUserId ? ($this->message->sender_id === $this->currentUserId) : false,
                 'created_at' => $this->message->created_at->toISOString(),
                 'sender' => [
                     'id' => $this->message->sender->id,
@@ -65,7 +68,15 @@ class MessageSent implements ShouldBroadcast
                     'avatar_url' => $this->message->sender->profile_photo ?? null,
                 ]
             ],
-            'chat_room_id' => $this->chatRoom->id,
+             'chat_room' => [
+                'id' => $this->chatRoom->id,
+                'name' => $this->chatRoom->name,
+                'type' => $this->chatRoom->type,
+                'event_name' => $this->chatRoom->event?->name,
+            ],
+             'chat_room_id' => $this->chatRoom->id,
+            'group_name' => $this->chatRoom->name,
+            // 'chat_room_id' => $this->chatRoom->id,
             'timestamp' => now()->toISOString()
         ];
     }
