@@ -145,7 +145,7 @@ class ChatService
         $message->load('sender', 'replyTo.sender');
 
         // Broadcast message to all chat room members except sender
-        broadcast(new MessageSent($message, $chatRoom,$senderId))->toOthers();
+        broadcast(new MessageSent($message, $chatRoom, $senderId))->toOthers();
 
         return $message;
     }
@@ -253,9 +253,7 @@ public function getChatMessages(int $chatRoomId, int $userId, int $page = 1, int
     $totalMessages = Message::where('chat_room_id', $chatRoomId)->count();
     $totalPages = ceil($totalMessages / $perPage);
     
-    // For reverse pagination, we need to calculate the offset from the end
-    // Page 1 should get the last 50 messages (newest)
-    // Page 2 should get the next 50 messages before that, etc.
+
     $offset = ($page - 1) * $perPage;
 
     $messages = Message::where('chat_room_id', $chatRoomId)
@@ -273,9 +271,9 @@ public function getChatMessages(int $chatRoomId, int $userId, int $page = 1, int
             'is_edited',
             'created_at'
         ])
-        ->orderBy('created_at', 'desc') // Get newest first
-        ->skip($offset) // Skip messages from previous pages
-        ->take($perPage) // Take only the required number
+        ->orderBy('created_at', 'desc')
+        ->skip($offset) 
+        ->take($perPage)
         ->get();
 
     // Mark messages as read
@@ -320,9 +318,9 @@ public function getChatMessages(int $chatRoomId, int $userId, int $page = 1, int
             'per_page' => $perPage,
             'total_pages' => $totalPages,
             'total_messages' => $totalMessages,
-            'has_more_pages' => $page < $totalPages, // Has older messages
-            'is_first_page' => $page === 1, // Is latest messages
-            'is_last_page' => $page === $totalPages // Is oldest messages
+            'has_more_pages' => $page < $totalPages,
+            'is_first_page' => $page === 1,
+            'is_last_page' => $page === $totalPages
         ]
     ];
 }
