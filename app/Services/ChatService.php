@@ -247,7 +247,7 @@ class ChatService
     /**
      * Get messages for a chat room
      */
-  public function getChatMessages(int $chatRoomId, int $userId, int $page = 1, int $perPage = 50): array
+ public function getChatMessages(int $chatRoomId, int $userId, int $page = 1, int $perPage = 50): array
 {
     $messages = Message::where('chat_room_id', $chatRoomId)
         ->with([
@@ -264,43 +264,46 @@ class ChatService
             'is_edited',
             'created_at'
         ])
-        ->orderBy('created_at', 'asc')  // Changed to ascending order
+        ->orderBy('created_at', 'asc')
         ->paginate($perPage, ['*'], 'page', $page);
 
     // Mark messages as read
     $this->markMessagesAsRead($chatRoomId, $userId);
 
-    return [
-        'messages' => $messages->items()->map(function ($message) use ($userId) {
-            $formatted = [
-                'id' => $message->id,
-                'content' => $message->content,
-                'message_type' => $message->message_type,
-                'is_edited' => $message->is_edited,
-                'isSender' => $message->sender_id === $userId,  // Added isSender field
-                'created_at' => $message->created_at->toISOString(),
+    // Convert items to collection and then map
+    $formattedMessages = collect($messages->items())->map(function ($message) use ($userId) {
+        $formatted = [
+            'id' => $message->id,
+            'content' => $message->content,
+            'message_type' => $message->message_type,
+            'is_edited' => $message->is_edited,
+            'isSender' => $message->sender_id === $userId,
+            'created_at' => $message->created_at->toISOString(),
+            'sender' => [
+                'id' => $message->sender->id,
+                'name' => $message->sender->name ?? 'Unknown User',
+                'profile_photo' => $message->sender->profile_photo ?? null,
+            ]
+        ];
+
+        // Add reply information if it exists
+        if ($message->reply_to_message_id && $message->replyTo) {
+            $formatted['reply_to'] = [
+                'id' => $message->replyTo->id,
+                'content' => $message->replyTo->content,
+                'message_type' => $message->replyTo->message_type,
                 'sender' => [
-                    'id' => $message->sender->id,
-                    'name' => $message->sender->name ?? 'Unknown User',
-                    'profile_photo' => $message->sender->profile_photo ?? null,
+                    'id' => $message->replyTo->sender->id,
+                    'name' => $message->replyTo->sender->name ?? 'Unknown User',
                 ]
             ];
+        }
 
-            // Add reply information if it exists
-            if ($message->reply_to_message_id && $message->replyTo) {
-                $formatted['reply_to'] = [
-                    'id' => $message->replyTo->id,
-                    'content' => $message->replyTo->content,
-                    'message_type' => $message->replyTo->message_type,
-                    'sender' => [
-                        'id' => $message->replyTo->sender->id,
-                        'name' => $message->replyTo->sender->name ?? 'Unknown User',
-                    ]
-                ];
-            }
+        return $formatted;
+    })->values()->toArray();
 
-            return $formatted;
-        })->values()->toArray(),
+    return [
+        'messages' => $formattedMessages,
         'pagination' => [
             'current_page' => $messages->currentPage(),
             'per_page' => $messages->perPage(),
