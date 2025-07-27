@@ -276,7 +276,7 @@ class ChatService
             'is_edited',
             'created_at'
         ])
-        ->orderBy('created_at', 'desc')
+        ->orderBy('created_at', 'asc')
         ->paginate($perPage, ['*'], 'page', $reversePage);
 
     $this->markMessagesAsRead($chatRoomId, $userId);
