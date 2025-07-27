@@ -209,11 +209,24 @@ Route::fallback(function () {
 });
 
 Route::get('/test-pusher', function () {
-    $data = ['message' => 'Hello from Laravel!'];
-    
-    broadcast(new \Illuminate\Broadcasting\BroadcastEvent(
-        ['test-data' => $data]
-    ))->on('chat-room-1');
-    
-    return 'Event sent!';
+    try {
+        // Method 1: Using Pusher directly
+        $pusher = new \Pusher\Pusher(
+            env('PUSHER_APP_KEY'),
+            env('PUSHER_APP_SECRET'),
+            env('PUSHER_APP_ID'),
+            [
+                'cluster' => env('PUSHER_APP_CLUSTER'),
+                'useTLS' => true,
+            ]
+        );
+
+        $data = ['message' => 'Hello from Laravel!'];
+        $pusher->trigger('chat-room-1', 'test-event', $data);
+
+        return 'Event sent via Pusher directly!';
+        
+    } catch (\Exception $e) {
+        return 'Error: ' . $e->getMessage();
+    }
 });
