@@ -264,7 +264,7 @@ class ChatService
             'is_edited',
             'created_at'
         ])
-        ->orderBy('created_at', 'desc')
+        ->orderBy('created_at', 'asc')
         ->paginate($perPage, ['*'], 'page', $page);
 
     // Mark messages as read
