@@ -221,7 +221,7 @@ Route::get('/test-pusher', function () {
             ]
         );
 
-        $data = ['message' => 'Hello from Laravel!'];
+        $data = ['message' => 'Hello from Abhishek!'];
         $pusher->trigger('chat-room-1', 'test-event', $data);
 
         return 'Event sent via Pusher directly!';
