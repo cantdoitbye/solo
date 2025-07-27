@@ -230,3 +230,24 @@ Route::get('/test-pusher', function () {
         return 'Error: ' . $e->getMessage();
     }
 });
+
+
+Route::get('/test-message-sent', function () {
+    try {
+        // Get a test message and chat room
+        $message = \App\Models\Message::with('sender')->first();
+        $chatRoom = \App\Models\ChatRoom::first();
+        
+        if (!$message || !$chatRoom) {
+            return 'No message or chat room found. Create some test data first.';
+        }
+        
+        // Manually trigger the MessageSent event
+        broadcast(new \App\Events\MessageSent($message, $chatRoom));
+        
+        return 'MessageSent event broadcasted!';
+        
+    } catch (\Exception $e) {
+        return 'Error: ' . $e->getMessage();
+    }
+});

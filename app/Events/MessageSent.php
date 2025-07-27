@@ -32,7 +32,9 @@ class MessageSent implements ShouldBroadcast
                 \Log::info('Broadcasting on channel: chat-room.' . $this->chatRoom->id);
 
         return [
-            new PresenceChannel('chat-room.' . $this->chatRoom->id),
+            // new PresenceChannel('chat-room.' . $this->chatRoom->id),
+                    new Channel('chat-room.' . $this->chatRoom->id),
+
         ];
     }
 
