@@ -58,7 +58,7 @@ class MessageSent implements ShouldBroadcast
                 'sender' => [
                     'id' => $this->message->sender->id,
                     'name' => $this->message->sender->name ?? 'Unknown User',
-                    'avatar_url' => $this->message->sender->avatar_url ?? null,
+                    'avatar_url' => $this->message->sender->profile_photo ?? null,
                 ]
             ],
             'chat_room_id' => $this->chatRoom->id,
