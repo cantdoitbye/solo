@@ -29,6 +29,8 @@ class MessageSent implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
+                \Log::info('Broadcasting on channel: chat-room.' . $this->chatRoom->id);
+
         return [
             new PresenceChannel('chat-room.' . $this->chatRoom->id),
         ];

@@ -207,3 +207,13 @@ Route::prefix('api/admin')->name('api.admin.')->middleware(['auth:admin'])->grou
 Route::fallback(function () {
     return view('errors.404');
 });
+
+Route::get('/test-pusher', function () {
+    $data = ['message' => 'Hello from Laravel!'];
+    
+    broadcast(new \Illuminate\Broadcasting\BroadcastEvent(
+        ['test-data' => $data]
+    ))->on('chat-room-1');
+    
+    return 'Event sent!';
+});
