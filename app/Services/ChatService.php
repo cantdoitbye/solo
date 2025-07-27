@@ -249,6 +249,18 @@ class ChatService
      */
  public function getChatMessages(int $chatRoomId, int $userId, int $page = 1, int $perPage = 50): array
 {
+    // Get total count first
+    $totalMessages = Message::where('chat_room_id', $chatRoomId)->count();
+    $totalPages = ceil($totalMessages / $perPage);
+    
+    // Calculate reverse page (last page becomes page 1)
+    $reversePage = $totalPages - $page + 1;
+    
+    // Ensure we don't go below page 1
+    if ($reversePage < 1) {
+        $reversePage = 1;
+    }
+
     $messages = Message::where('chat_room_id', $chatRoomId)
         ->with([
             'sender:id,name,profile_photo', 
@@ -264,14 +276,13 @@ class ChatService
             'is_edited',
             'created_at'
         ])
-        ->orderBy('created_at', 'asc')
-        ->paginate($perPage, ['*'], 'page', $page);
+        ->orderBy('created_at', 'desc')
+        ->paginate($perPage, ['*'], 'page', $reversePage);
 
-    // Mark messages as read
     $this->markMessagesAsRead($chatRoomId, $userId);
 
-    // Convert items to collection and then map
-    $formattedMessages = collect($messages->items())->map(function ($message) use ($userId) {
+    // Reverse the messages order so newest is at bottom (chat style)
+    $formattedMessages = collect($messages->items())->reverse()->map(function ($message) use ($userId) {
         $formatted = [
             'id' => $message->id,
             'content' => $message->content,
@@ -305,10 +316,13 @@ class ChatService
     return [
         'messages' => $formattedMessages,
         'pagination' => [
-            'current_page' => $messages->currentPage(),
+            'current_page' => $page,
             'per_page' => $messages->perPage(),
-            'total_pages' => $messages->lastPage(),
-            'total_messages' => $messages->total()
+            'total_pages' => $totalPages,
+            'total_messages' => $totalMessages,
+            'has_more_pages' => $page < $totalPages,
+            'is_first_page' => $page === 1,
+            'is_last_page' => $page === $totalPages
         ]
     ];
 }
