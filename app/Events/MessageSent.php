@@ -33,7 +33,7 @@ class MessageSent implements ShouldBroadcast
 
         return [
             // new PresenceChannel('chat-room.' . $this->chatRoom->id),
-                    new Channel('chat-room.' . $this->chatRoom->id),
+                    new Channel('chat-room-' . $this->chatRoom->id),
 
         ];
     }
