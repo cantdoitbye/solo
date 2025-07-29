@@ -24,7 +24,7 @@ class EventMediaService
             $eventImagePath = $this->handleEventImageUpload($eventImage, $event->id);
             
             // Update the event with the new image path
-            $event->update(['image' => $eventImagePath]);
+            $event->update(['event_image' => $eventImagePath]);
             
             \Log::info('Event image updated successfully:', [
                 'event_id' => $event->id,
