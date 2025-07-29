@@ -337,6 +337,7 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
         $event = $this->validateEventAccess($eventId, $hostId);
         
         $updateData = [
+            'notes' => $data['notes'],
             'cancellation_policy' => $data['cancellation_policy'] ?? 'no_refund',
             'host_responsibilities_accepted' => $data['host_responsibilities_accepted'] ?? false,
         ];
