@@ -19,13 +19,29 @@ class EventMediaService
         $uploadedMedia = [];
             $event = Event::where('session_id', $sessionId)->first();
 
+             if ($eventImage && $event) {
+        try {
+            $eventImagePath = $this->handleEventImageUpload($eventImage, $event->id);
+            
+            // Update the event with the new image path
+            $event->update(['image' => $eventImagePath]);
+            
+            \Log::info('Event image updated successfully:', [
+                'event_id' => $event->id,
+                'image_path' => $eventImagePath
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to update event image:', [
+                'event_id' => $event->id,
+                'error' => $e->getMessage()
+            ]);
+          
+        }
+    }
 
         foreach ($files as $file) {
 
-                        $eventImagePath = $this->handleEventImageUpload($eventImage, $event->id);
-
-             $event->update(['event_image' => $eventImagePath]);
-
+                       
             $this->validateMediaFile($file);
 
 
@@ -55,10 +71,14 @@ class EventMediaService
         ];
     }
 
-    
-private function handleEventImageUpload($file, int $eventId): string
+    private function handleEventImageUpload($file, int $eventId): string
 {
     try {
+        // Get file information BEFORE moving the file
+        $originalName = $file->getClientOriginalName();
+        $fileSize = $file->getSize();
+        $extension = $file->getClientOriginalExtension();
+        
         // Create event_images directory in public if it doesn't exist
         $publicDir = public_path('event_images');
         if (!file_exists($publicDir)) {
@@ -66,7 +86,7 @@ private function handleEventImageUpload($file, int $eventId): string
         }
         
         // Generate unique filename
-        $fileName = 'event_' . $eventId . '_' . uniqid() . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $fileName = 'event_' . $eventId . '_' . uniqid() . '_' . time() . '.' . $extension;
         
         // Full path where file will be stored
         $destinationPath = $publicDir . '/' . $fileName;
@@ -81,8 +101,8 @@ private function handleEventImageUpload($file, int $eventId): string
             'file_name' => $fileName,
             'relative_path' => $relativePath,
             'full_path' => $destinationPath,
-            'file_size' => $file->getSize(),
-            'original_name' => $file->getClientOriginalName()
+            'file_size' => $fileSize, // Use the variable we captured before moving
+            'original_name' => $originalName // Use the variable we captured before moving
         ]);
         
         return $relativePath;
