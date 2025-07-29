@@ -7,6 +7,8 @@ use App\Services\ChatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
 
 class ChatController extends Controller
 {
@@ -80,23 +82,30 @@ class ChatController extends Controller
     public function sendMessage(Request $request, int $chatRoomId): JsonResponse
     {
         $request->validate([
-            'content' => 'required|string|max:2000',
+            'content' => 'nullable|string|max:2000',
             'type' => 'nullable|in:text,image,file',
             'file' => 'nullable|file|max:10240', // 10MB max
             'reply_to_message_id' => 'nullable|integer|exists:messages,id'
         ]);
 
         try {
-            $fileData = [];
-            if ($request->hasFile('file')) {
-                $file = $request->file('file');
-                $path = $file->store('chat-files', 'public');
-                $fileData = [
-                    'file_url' => Storage::url($path),
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_size' => $file->getSize()
-                ];
-            }
+           $fileData = [];
+
+if ($request->hasFile('file')) {
+    $file = $request->file('file');
+
+    // Generate a unique file name
+    $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
+
+    // Save file directly to public/chat-files
+    $file->move(public_path('chat-files'), $filename);
+
+    $fileData = [
+        'file_url' => asset('chat-files/' . $filename),
+        'file_name' => $file->getClientOriginalName(),
+        'file_size' => $file->getSize(),
+    ];
+}
 
             $message = $this->chatService->sendMessage(
                 $chatRoomId,

@@ -267,6 +267,7 @@ public function getChatMessages(int $chatRoomId, int $userId, int $page = 1, int
             'sender_id', 
             'message_type', 
             'content', 
+            'file_url',
             'reply_to_message_id',
             'is_edited',
             'created_at'
