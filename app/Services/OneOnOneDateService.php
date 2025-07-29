@@ -127,53 +127,106 @@ class OneOnOneDateService
 
     /**
      * Process and store media file
-     */
-    private function processAndStoreMedia($file, int $userId): array
-    {
-        $originalName = $file->getClientOriginalName();
-        $extension = $file->getClientOriginalExtension();
-        $mimeType = $file->getMimeType();
-        $fileSize = $file->getSize();
+    //  */
+    // private function processAndStoreMedia($file, int $userId): array
+    // {
+    //     $originalName = $file->getClientOriginalName();
+    //     $extension = $file->getClientOriginalExtension();
+    //     $mimeType = $file->getMimeType();
+    //     $fileSize = $file->getSize();
         
-        // Generate unique filename
-        $storedName = time() . '_' . uniqid() . '.' . $extension;
+    //     // Generate unique filename
+    //     $storedName = time() . '_' . uniqid() . '.' . $extension;
         
-        // Determine media type
-        $mediaType = str_starts_with($mimeType, 'image/') ? 'image' : 'video';
+    //     // Determine media type
+    //     $mediaType = str_starts_with($mimeType, 'image/') ? 'image' : 'video';
         
-        // Store file
-        $path = $file->storeAs('one-on-one-dates/media', $storedName, 'public');
-        // $url = asset('storage/' . $path);
-                $fileUrl = 'storage/' . $path;
+    //     // Store file
+    //     $path = $file->storeAs('one-on-one-dates/media', $storedName, 'public');
+    //     // $url = asset('storage/' . $path);
+    //             $fileUrl = 'storage/' . $path;
 
         
-        // Get image/video dimensions if applicable
-        $width = null;
-        $height = null;
-        $duration = null;
+    //     // Get image/video dimensions if applicable
+    //     $width = null;
+    //     $height = null;
+    //     $duration = null;
         
-        if ($mediaType === 'image') {
-            $imageInfo = getimagesize($file->getRealPath());
-            if ($imageInfo) {
-                $width = $imageInfo[0];
-                $height = $imageInfo[1];
-            }
-        }
+    //     if ($mediaType === 'image') {
+    //         $imageInfo = getimagesize($file->getRealPath());
+    //         if ($imageInfo) {
+    //             $width = $imageInfo[0];
+    //             $height = $imageInfo[1];
+    //         }
+    //     }
         
-        return [
-            'user_id' => $userId,
-            'original_filename' => $originalName,
-            'stored_filename' => $storedName,
-            'file_path' => $path,
-            'file_url' => $fileUrl,
-            'media_type' => $mediaType,
-            'mime_type' => $mimeType,
-            'file_size' => $fileSize,
-            'width' => $width,
-            'height' => $height,
-            'duration' => $duration
-        ];
+    //     return [
+    //         'user_id' => $userId,
+    //         'original_filename' => $originalName,
+    //         'stored_filename' => $storedName,
+    //         'file_path' => $path,
+    //         'file_url' => $fileUrl,
+    //         'media_type' => $mediaType,
+    //         'mime_type' => $mimeType,
+    //         'file_size' => $fileSize,
+    //         'width' => $width,
+    //         'height' => $height,
+    //         'duration' => $duration
+    //     ];
+    // }
+
+    private function processAndStoreMedia($file, int $userId): array
+{
+    $originalName = $file->getClientOriginalName();
+    $extension = $file->getClientOriginalExtension();
+    $mimeType = $file->getMimeType();
+    $fileSize = $file->getSize();
+
+    // Generate unique filename
+    $storedName = time() . '_' . uniqid() . '.' . $extension;
+
+    // Determine media type
+    $mediaType = str_starts_with($mimeType, 'image/') ? 'image' : 'video';
+
+    // Define public path and move file manually
+    $destinationPath = public_path('one-on-one-dates/media');
+    if (!file_exists($destinationPath)) {
+        mkdir($destinationPath, 0755, true);
     }
+
+    $file->move($destinationPath, $storedName);
+
+    // File URL relative to public/
+    $fileUrl = 'one-on-one-dates/media/' . $storedName;
+
+    // Get image/video dimensions if applicable
+    $width = null;
+    $height = null;
+    $duration = null;
+
+    if ($mediaType === 'image') {
+        $imageInfo = getimagesize($destinationPath . '/' . $storedName);
+        if ($imageInfo) {
+            $width = $imageInfo[0];
+            $height = $imageInfo[1];
+        }
+    }
+
+    return [
+        'user_id' => $userId,
+        'original_filename' => $originalName,
+        'stored_filename' => $storedName,
+        'file_path' => 'one-on-one-dates/media/' . $storedName,
+        'file_url' => $fileUrl,
+        'media_type' => $mediaType,
+        'mime_type' => $mimeType,
+        'file_size' => $fileSize,
+        'width' => $width,
+        'height' => $height,
+        'duration' => $duration
+    ];
+}
+
 
     /**
      * Validate media file
