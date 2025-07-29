@@ -108,11 +108,13 @@ class ChatController extends Controller
             
             // Auto-detect message type based on file
             $messageType = $this->detectMessageType($file);
+              $fileData = $this->handleFileUpload($file);
+                          $messageType = $this->detectMessageType($file);
+
+
         }
-  $fileData = $this->handleFileUpload($file);
             
             // Auto-detect message type based on file
-            $messageType = $this->detectMessageType($file);
 
 
             $message = $this->chatService->sendMessage(
