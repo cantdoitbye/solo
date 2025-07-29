@@ -46,6 +46,8 @@ class Event extends Model
         'itinerary_url',
         'host_responsibilities_accepted',
         'status',
+        'event_image',
+        'notes',
         'published_at',
         'cancelled_at',
       
