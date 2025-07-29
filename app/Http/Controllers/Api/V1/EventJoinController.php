@@ -103,7 +103,7 @@ class EventJoinController extends Controller
                     'tags' => $event->tags,
                     'event_image' => $event->event_image,
  'media' => $eventMedia,      
-  'menu_images' => $eventMedia,                 
+  'menu_images' => $menuImages,                 
                     // Venue details
                     'venue' => [
                         'type' => $event->venueType->name ?? null,
