@@ -62,7 +62,7 @@ private function hasUserBookedDate(int $dateId, int $userId): bool
 {
     // Assuming you have a bookings/attendees table
     // Replace with your actual booking model and table
-    return OneOnOneDateBooking::where('one_on_one_date_id ', $dateId)
+    return OneOnOneDateBooking::where('one_on_one_date_id', $dateId)
         ->where('user_id', $userId)
         ->whereIn('status', ['booked']) // Active bookings
         ->exists();
@@ -74,7 +74,7 @@ private function hasUserBookedDate(int $dateId, int $userId): bool
 private function hasAnyUserBookedDate(int $dateId): bool
 {
     // For one-on-one dates, only one person should be able to book
-    return OneOnOneDateBooking::where('one_on_one_date_id ', $dateId)
+    return OneOnOneDateBooking::where('one_on_one_date_id', $dateId)
         ->whereIn('status', ['booked']) // Active bookings
         ->exists();
 }
