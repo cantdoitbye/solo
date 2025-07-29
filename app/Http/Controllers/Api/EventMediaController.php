@@ -19,7 +19,7 @@ class EventMediaController extends Controller
     public function uploadMedia(Request $request): JsonResponse
     {
         $request->validate([
-            'files' => 'required|array|max:10',
+            'files' => 'nullable|array|max:10',
             'files.*' => 'file|mimes:jpeg,jpg,png,gif,bmp,webp,svg,mp4,avi,mov,wmv,flv,webm,mkv,m4v,3gp,pdf,doc,docx|max:10240',
             'session_id' => 'nullable|string',
             'event_image' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
