@@ -23,6 +23,12 @@ class OneOnOneDateService
         }
 
         $dateData = is_array($date) ? $date : $date->toArray();
+
+         // Check if current user has already booked this date
+    $hasUserBooked = $this->hasUserBookedDate($dateId, $userId);
+    
+    // Check if any user has booked this date (if that's what you want)
+    $hasAnyUserBooked = $this->hasAnyUserBookedDate($dateId);
         
         return [
             'id' => $dateData['id'],
@@ -41,9 +47,37 @@ class OneOnOneDateService
             ],
             'token_cost' => $dateData['token_cost'],
             'media' => $dateData['media'] ?? [],
-            'can_book' => $dateData['status'] === 'published' && $dateData['approval_status'] === 'approved'
+            // 'can_book' => $dateData['status'] === 'published' && $dateData['approval_status'] === 'approved'
+             'can_book' => $dateData['status'] === 'published' 
+                   && $dateData['approval_status'] === 'approved' 
+                   && !$hasUserBooked  // User hasn't booked
+                   && !$hasAnyUserBooked 
         ];
     }
+
+    /**
+ * Check if the current user has already booked this date
+ */
+private function hasUserBookedDate(int $dateId, int $userId): bool
+{
+    // Assuming you have a bookings/attendees table
+    // Replace with your actual booking model and table
+    return OneOnOneDateBooking::where('one_on_one_date_id ', $dateId)
+        ->where('user_id', $userId)
+        ->whereIn('status', ['booked']) // Active bookings
+        ->exists();
+}
+
+/**
+ * Check if any user has booked this date (for one-on-one dates)
+ */
+private function hasAnyUserBookedDate(int $dateId): bool
+{
+    // For one-on-one dates, only one person should be able to book
+    return OneOnOneDateBooking::where('one_on_one_date_id ', $dateId)
+        ->whereIn('status', ['booked']) // Active bookings
+        ->exists();
+}
     /**
      * Create a new 1:1 date with media upload
      */
