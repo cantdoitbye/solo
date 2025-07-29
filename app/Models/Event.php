@@ -349,5 +349,10 @@ public function getChatRoomId(): ?int
     return $this->chatRoom?->id;
 }
 
+public function menuImages(): HasMany
+{
+    return $this->hasMany(EventMenu::class)->orderBy('sort_order', 'asc');
+}
+
     
 }

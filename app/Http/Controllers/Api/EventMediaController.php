@@ -23,7 +23,8 @@ class EventMediaController extends Controller
             'files.*' => 'file|mimes:jpeg,jpg,png,gif,bmp,webp,svg,mp4,avi,mov,wmv,flv,webm,mkv,m4v,3gp,pdf,doc,docx|max:10240',
             'session_id' => 'nullable|string',
             'event_image' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
-
+            'menu_images' => 'nullable|array|max:10',
+            'menu_images.*' => 'file|mimes:jpeg,jpg,png,gif,bmp,webp,svg|max:5120',
         ]);
 
         try {
@@ -32,8 +33,11 @@ class EventMediaController extends Controller
                 $request->user()->id,
                 $request->file('files') ?? [],
                 $request->file('event_image'),
-                $request->session_id
+                $request->session_id,
+                 $request->file('menu_images') ?? []
             );
+
+           
 
             return response()->json([
                 'success' => true,

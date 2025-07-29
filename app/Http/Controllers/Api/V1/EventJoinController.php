@@ -38,6 +38,7 @@ class EventJoinController extends Controller
             'venueType', 
             'venueCategory', 
             'media',
+            'menuImages',
             'attendees' => function ($query) {
                 $query->whereIn('status', ['interested', 'confirmed']);
             }
@@ -82,6 +83,13 @@ class EventJoinController extends Controller
             ];
         })->toArray();
 
+         $menuImages = $event->menuImages->map(function ($menu) {
+            return [
+                'id' => $menu->id,
+                'file_url' => $menu->file_url
+            ];
+        })->toArray();
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -94,7 +102,8 @@ class EventJoinController extends Controller
                     'timezone' => $event->timezone,
                     'tags' => $event->tags,
                     'event_image' => $event->event_image,
- 'media' => $eventMedia,                    
+ 'media' => $eventMedia,      
+  'menu_images' => $eventMedia,                 
                     // Venue details
                     'venue' => [
                         'type' => $event->venueType->name ?? null,

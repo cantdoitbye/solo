@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Event;
 use App\Models\EventMedia;
 use App\Models\EventItinerary;
+use App\Models\EventMenu;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -13,10 +14,11 @@ class EventMediaService
     /**
      * Upload media files with session tracking
      */
-    public function uploadMedia(int $userId, array $files = [],$eventImage = null, string $sessionId = null): array
+    public function uploadMedia(int $userId, array $files = [],$eventImage = null, string $sessionId = null, array $menuImages = []): array
     {
         $sessionId = $sessionId ?? Str::uuid()->toString();
         $uploadedMedia = [];
+        $uploadedMenus = [];
             $event = Event::where('session_id', $sessionId)->first();
 
              if ($eventImage && $event) {
@@ -63,12 +65,45 @@ class EventMediaService
             ];
         }
 
-        return [
+         // Handle menu images (NEW)
+        foreach ($menuImages as $index => $menuFile) {
+            $this->validateMenuImageFile($menuFile);
+            $menuData = $this->processAndStoreMenuImage($menuFile, $userId, $sessionId, $index);
+
+            if ($event) {
+                $menuData['event_id'] = $event->id;
+                $menuData['is_attached_to_event'] = true;
+            }
+            $menu = EventMenu::create($menuData);
+            
+            $uploadedMenus[] = [
+                'id' => $menu->id,
+                'url' => $menu->file_url,
+                'filename' => $menu->original_filename,
+                'size' => $menu->file_size,
+                'sort_order' => $menu->sort_order
+            ];
+        }
+
+    
+
+
+          $response = [
             'session_id' => $sessionId,
             'uploaded_media' => $uploadedMedia,
             'total_count' => count($uploadedMedia),
             'message' => 'Media files uploaded successfully'
         ];
+
+        // Add menu images to response if uploaded
+        if (!empty($uploadedMenus)) {
+            $response['uploaded_menu_images'] = $uploadedMenus;
+            $response['total_menu_count'] = count($uploadedMenus);
+            $response['message'] = 'Media files and menu images uploaded successfully';
+        }
+
+                return $response;
+
     }
 
     private function handleEventImageUpload($file, int $eventId): string
@@ -115,6 +150,67 @@ class EventMediaService
         throw new \Exception('Failed to upload event image: ' . $e->getMessage());
     }
 }
+
+   /**
+     * NEW: Validate menu image file
+     */
+    private function validateMenuImageFile($file): void
+    {
+        $allowedTypes = [
+            'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+            'image/webp', 'image/bmp', 'image/svg+xml'
+        ];
+        $maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (!in_array($file->getMimeType(), $allowedTypes)) {
+            throw new \Exception('Invalid menu image type. Only images (JPEG, PNG, GIF, WebP, BMP, SVG) are allowed.');
+        }
+
+        if ($file->getSize() > $maxSize) {
+            throw new \Exception('Menu image size too large. Maximum size is 5MB.');
+        }
+    }
+
+
+    /**
+     * NEW: Process and store menu image
+     */
+    private function processAndStoreMenuImage($file, int $userId, string $sessionId, int $sortOrder = 0): array
+    {
+        $originalName = $file->getClientOriginalName();
+        $extension = $file->getClientOriginalExtension();
+        $storedName = Str::uuid() . '.' . $extension;
+
+        $path = "event-menus/{$userId}/{$sessionId}";
+        $publicPath = public_path($path);
+
+        $menuData = [
+            'file_path' => $path,
+            'mime_type' => $file->getMimeType(),
+            'file_size' => $file->getSize(),
+            'upload_session_id' => $sessionId,
+            'is_attached_to_event' => false,
+            'sort_order' => $sortOrder
+        ];
+
+        // Get image dimensions
+        try {
+            [$width, $height] = getimagesize($file->getPathname());
+            $menuData['width'] = $width;
+            $menuData['height'] = $height;
+        } catch (\Exception $e) {
+            // Ignore if dimensions can't be fetched
+        }
+
+        if (!file_exists($publicPath)) {
+            mkdir($publicPath, 0755, true);
+        }
+
+        $file->move($publicPath, $storedName);
+        $menuData['file_url'] = "{$path}/{$storedName}";
+
+        return $menuData;
+    }
 
     /**
      * Upload itinerary file with session tracking
