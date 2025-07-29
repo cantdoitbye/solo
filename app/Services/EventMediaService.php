@@ -509,8 +509,20 @@ private function validateItineraryFile($file): void
     $path = "event-media/{$userId}/{$sessionId}";
     $publicPath = public_path($path);
 
-    $mediaType = str_starts_with($file->getMimeType(), 'image/') ? 'image' : 'video';
+            $mimeType = $file->getMimeType();
 
+
+  if (str_starts_with($mimeType, 'image/')) {
+            $mediaType = 'image';
+        } elseif (str_starts_with($mimeType, 'video/')) {
+            $mediaType = 'video';
+        } elseif ($mimeType === 'application/pdf' || 
+                  str_starts_with($mimeType, 'application/msword') || 
+                  str_starts_with($mimeType, 'application/vnd.openxml')) {
+            $mediaType = 'document';
+        } else {
+            $mediaType = 'file'; 
+        }
     // Prepare media data
     $mediaData = [
         'user_id' => $userId,
