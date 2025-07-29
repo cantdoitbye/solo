@@ -287,6 +287,7 @@ public function getChatMessages(int $chatRoomId, int $userId, int $page = 1, int
             'content' => $message->content,
             'message_type' => $message->message_type,
             'is_edited' => $message->is_edited,
+            'file_url' => $message->file_url,
             'isSender' => $message->sender_id === $userId,
             'created_at' => $message->created_at->toISOString(),
             'sender' => [
