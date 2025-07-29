@@ -372,6 +372,7 @@ class HomeScreenService
                     'is_free' => ($eventData['token_cost_per_attendee'] ?? 0) == 0
                 ],
                 'tags' => $eventData['tags'] ?? [],
+                'event_image' => $eventData['event_image'],
                 'image_url' => $this->getEventImageUrl($eventData),
                 'is_hot' => $this->isHotEvent($eventData),
                 'is_user_joined' => $userId ? $this->isUserJoined($eventData['id'], $userId) : false,
