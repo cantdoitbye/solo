@@ -102,7 +102,7 @@ class ChatController extends Controller
         $messageType = $request->input('type', 'text');
 
         // Handle file upload for personal chats only
-        if ($request->hasFile('file') && $chatRoom->type === ChatRoom::TYPE_PERSONAL) {
+        if ($request->hasFile('file')) {
             $file = $request->file('file');
             $fileData = $this->handleFileUpload($file);
             
