@@ -13,7 +13,7 @@ class EventMediaService
     /**
      * Upload media files with session tracking
      */
-    public function uploadMedia(int $userId, array $files,$eventImage = null, string $sessionId = null): array
+    public function uploadMedia(int $userId, array $files = [],$eventImage = null, string $sessionId = null): array
     {
         $sessionId = $sessionId ?? Str::uuid()->toString();
         $uploadedMedia = [];
