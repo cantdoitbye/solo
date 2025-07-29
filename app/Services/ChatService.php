@@ -19,9 +19,9 @@ class ChatService
    /**
      * Create event group chat when event is published
      */
-    public function createEventGroupChat(Event $event): ChatRoom
+    public function createEventGroupChat(Event $event, int $hostId): ChatRoom
     {
-        return DB::transaction(function () use ($event) {
+        return DB::transaction(function () use ($event, $hostId) {
             // Create chat room
             $chatRoom = ChatRoom::create([
                 'name' => $event->name,
@@ -42,7 +42,7 @@ class ChatService
             $welcomeMessage = $this->sendSystemMessage($chatRoom, "Welcome to {$event->name} group chat!");
 
             // Broadcast welcome message
-            broadcast(new MessageSent($welcomeMessage, $chatRoom))->toOthers();
+            broadcast(new MessageSent($welcomeMessage, $chatRoom, $hostId))->toOthers();
 
             return $chatRoom;
         });
@@ -71,7 +71,7 @@ class ChatService
 
             // Broadcast user joined event
             broadcast(new UserJoinedChat($user, $chatRoom));
-            broadcast(new MessageSent($joinMessage, $chatRoom))->toOthers();
+            broadcast(new MessageSent($joinMessage, $chatRoom, $userId))->toOthers();
         }
     }
 
