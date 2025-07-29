@@ -69,7 +69,12 @@ class MessageSent implements ShouldBroadcast
                     'id' => $this->message->sender->id,
                     'name' => $this->message->sender->name ?? 'Unknown User',
                     'avatar_url' => $this->message->sender->profile_photo ?? null,
-                ]
+                ],
+                 'file' => $this->message->hasFile() ? [
+                'url' => $this->message->file_url,
+                'name' => $this->message->file_name,
+                'size' => $this->message->file_size,
+            ] : null,
             ],
              'chat_room' => [
                 'id' => $this->chatRoom->id,

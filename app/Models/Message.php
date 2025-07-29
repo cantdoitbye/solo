@@ -40,9 +40,12 @@ class Message extends Model
 
     const TYPE_TEXT = 'text';
     const TYPE_IMAGE = 'image';
+    const TYPE_VIDEO = 'video';
     const TYPE_FILE = 'file';
     const TYPE_VOICE = 'voice';
     const TYPE_SYSTEM = 'system';
+
+    
 
     // Relationships
     public function chatRoom(): BelongsTo

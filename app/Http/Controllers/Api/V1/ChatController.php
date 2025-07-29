@@ -89,40 +89,28 @@ class ChatController extends Controller
         ]);
 
         try {
+              $fileData = [];
+        $messageType = $request->input('type', 'text');
 
-$fileData = [];
-
-if ($request->hasFile('file')) {
-    $file = $request->file('file');
-
-    // Get size BEFORE moving
-    $fileSize = $file->getSize();
-
-    // Generate a unique file name
-    $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-
-    // Ensure directory exists
-    $destination = public_path('chat-files');
-    if (!file_exists($destination)) {
-        mkdir($destination, 0777, true);
-    }
-
-    // Move file
-    $file->move($destination, $filename);
-
-    $fileData = [
-        'file_url' => asset('chat-files/' . $filename),
-        'file_name' => $file->getClientOriginalName(),
-        'file_size' => $fileSize,
-    ];
-}
+        // Handle file upload for personal chats only
+        if ($request->hasFile('file') && $chatRoom->type === ChatRoom::TYPE_PERSONAL) {
+            $file = $request->file('file');
+            $fileData = $this->handleFileUpload($file);
+            
+            // Auto-detect message type based on file
+            $messageType = $this->detectMessageType($file);
+        }
+  $fileData = $this->handleFileUpload($file);
+            
+            // Auto-detect message type based on file
+            $messageType = $this->detectMessageType($file);
 
 
             $message = $this->chatService->sendMessage(
                 $chatRoomId,
                 $request->user()->id,
                 $request->input('content'),
-                $request->input('type', 'text'),
+                $messageType,
                 $fileData,
                 $request->input('reply_to_message_id')
             );
@@ -142,6 +130,46 @@ if ($request->hasFile('file')) {
             ], 500);
         }
     }
+
+    /**
+ * Handle file upload and return file data
+ */
+private function handleFileUpload($file): array
+{
+    try {
+        // Generate unique filename
+        $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        
+        // Store in chat-media folder
+        $path = $file->storeAs('chat-media', $filename, 'public');
+        
+        return [
+            'file_url' => \Storage::url($path),
+            'file_name' => $file->getClientOriginalName(),
+            'file_size' => $file->getSize(),
+            'mime_type' => $file->getMimeType()
+        ];
+        
+    } catch (\Exception $e) {
+        throw new \Exception('Failed to upload file: ' . $e->getMessage());
+    }
+}
+
+/**
+ * Detect message type based on file
+ */
+private function detectMessageType($file): string
+{
+    $mimeType = $file->getMimeType();
+    
+    if (str_starts_with($mimeType, 'image/')) {
+        return 'image';
+    } elseif (str_starts_with($mimeType, 'video/')) {
+        return 'video';
+    } else {
+        return 'file';
+    }
+}
 
     /**
      * Handle typing indicator
