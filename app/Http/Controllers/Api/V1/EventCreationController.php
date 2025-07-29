@@ -279,22 +279,13 @@ public function createEventBulk(Request $request, ?int $eventId = null): JsonRes
             'cancellation_policy' => 'required|string|in:no_refund,partial_refund,full_refund',
             'host_responsibilities_accepted' => 'required|boolean',
             'itinerary_session_id' => 'nullable|string',
-            'event_image' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
             'notes' => 'nullable'
 
         ]);
 
         try {
 
-               if ($request->hasFile('event_image')) {
-            $eventImagePath = $this->handleEventImageUpload($request->file('event_image'), $eventId);
-            $requestData['event_image'] = $eventImagePath;
-            
-            \Log::info('Event image uploaded:', [
-                'event_id' => $eventId,
-                'image_path' => $eventImagePath
-            ]);
-        }
+           
             $result = $this->eventCreationService->handleHostResponsibilities(
                 $eventId,
                 $request->user()->id,
@@ -314,48 +305,7 @@ public function createEventBulk(Request $request, ?int $eventId = null): JsonRes
     }
 
 
-    /**
- * Handle event image upload
- */
-private function handleEventImageUpload($file, int $eventId): string
-{
-    try {
-        // Create event_images directory in public if it doesn't exist
-        $publicDir = public_path('event_images');
-        if (!file_exists($publicDir)) {
-            mkdir($publicDir, 0755, true);
-        }
-        
-        // Generate unique filename
-        $fileName = 'event_' . $eventId . '_' . uniqid() . '_' . time() . '.' . $file->getClientOriginalExtension();
-        
-        // Full path where file will be stored
-        $destinationPath = $publicDir . '/' . $fileName;
-        
-        // Move file to public/event_images directory
-        $file->move($publicDir, $fileName);
-        
-        // Return relative path for database storage
-        $relativePath = 'event_images/' . $fileName;
-        
-        \Log::info('Event image stored successfully in public folder:', [
-            'file_name' => $fileName,
-            'relative_path' => $relativePath,
-            'full_path' => $destinationPath,
-            'file_size' => $file->getSize(),
-            'original_name' => $file->getClientOriginalName()
-        ]);
-        
-        return $relativePath;
-        
-    } catch (\Exception $e) {
-        \Log::error('Failed to upload event image to public folder:', [
-            'error' => $e->getMessage(),
-            'event_id' => $eventId
-        ]);
-        throw new \Exception('Failed to upload event image: ' . $e->getMessage());
-    }
-}
+   
     /**
      * Step 8: Generate Preview
      */

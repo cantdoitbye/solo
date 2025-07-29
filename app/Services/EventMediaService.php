@@ -13,7 +13,7 @@ class EventMediaService
     /**
      * Upload media files with session tracking
      */
-    public function uploadMedia(int $userId, array $files, string $sessionId = null): array
+    public function uploadMedia(int $userId, array $files,$eventImage = null, string $sessionId = null): array
     {
         $sessionId = $sessionId ?? Str::uuid()->toString();
         $uploadedMedia = [];
@@ -21,7 +21,14 @@ class EventMediaService
 
 
         foreach ($files as $file) {
+
+                        $eventImagePath = $this->handleEventImageUpload($eventImage, $event->id);
+
+             $event->update(['event_image' => $eventImagePath]);
+
             $this->validateMediaFile($file);
+
+
             
             $mediaData = $this->processAndStoreMedia($file, $userId, $sessionId);
 
@@ -47,6 +54,47 @@ class EventMediaService
             'message' => 'Media files uploaded successfully'
         ];
     }
+
+    
+private function handleEventImageUpload($file, int $eventId): string
+{
+    try {
+        // Create event_images directory in public if it doesn't exist
+        $publicDir = public_path('event_images');
+        if (!file_exists($publicDir)) {
+            mkdir($publicDir, 0755, true);
+        }
+        
+        // Generate unique filename
+        $fileName = 'event_' . $eventId . '_' . uniqid() . '_' . time() . '.' . $file->getClientOriginalExtension();
+        
+        // Full path where file will be stored
+        $destinationPath = $publicDir . '/' . $fileName;
+        
+        // Move file to public/event_images directory
+        $file->move($publicDir, $fileName);
+        
+        // Return relative path for database storage
+        $relativePath = 'event_images/' . $fileName;
+        
+        \Log::info('Event image stored successfully in public folder:', [
+            'file_name' => $fileName,
+            'relative_path' => $relativePath,
+            'full_path' => $destinationPath,
+            'file_size' => $file->getSize(),
+            'original_name' => $file->getClientOriginalName()
+        ]);
+        
+        return $relativePath;
+        
+    } catch (\Exception $e) {
+        \Log::error('Failed to upload event image to public folder:', [
+            'error' => $e->getMessage(),
+            'event_id' => $eventId
+        ]);
+        throw new \Exception('Failed to upload event image: ' . $e->getMessage());
+    }
+}
 
     /**
      * Upload itinerary file with session tracking

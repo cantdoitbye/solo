@@ -21,13 +21,17 @@ class EventMediaController extends Controller
         $request->validate([
             'files' => 'required|array|max:10',
             'files.*' => 'file|mimes:jpeg,jpg,png,gif,bmp,webp,svg,mp4,avi,mov,wmv,flv,webm,mkv,m4v,3gp,pdf,doc,docx|max:10240',
-            'session_id' => 'nullable|string'
+            'session_id' => 'nullable|string',
+            'event_image' => 'nullable|image|mimes:jpeg,jpg,png|max:5120',
+
         ]);
 
         try {
+              
             $result = $this->mediaService->uploadMedia(
                 $request->user()->id,
                 $request->file('files'),
+                $request->file('event_image'),
                 $request->session_id
             );
 
