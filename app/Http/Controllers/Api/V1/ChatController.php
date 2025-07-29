@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Models\ChatRoom;
 use App\Services\ChatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -87,6 +88,14 @@ class ChatController extends Controller
             'file' => 'nullable|file|max:10240', // 10MB max
             'reply_to_message_id' => 'nullable|integer|exists:messages,id'
         ]);
+
+          $chatRoom = ChatRoom::find($chatRoomId);
+    if (!$chatRoom) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Chat room not found'
+        ], 404);
+    }
 
         try {
               $fileData = [];
