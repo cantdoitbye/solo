@@ -89,23 +89,34 @@ class ChatController extends Controller
         ]);
 
         try {
-           $fileData = [];
+
+$fileData = [];
 
 if ($request->hasFile('file')) {
     $file = $request->file('file');
 
+    // Get size BEFORE moving
+    $fileSize = $file->getSize();
+
     // Generate a unique file name
     $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
 
-    // Save file directly to public/chat-files
-    $file->move(public_path('chat-files'), $filename);
+    // Ensure directory exists
+    $destination = public_path('chat-files');
+    if (!file_exists($destination)) {
+        mkdir($destination, 0777, true);
+    }
+
+    // Move file
+    $file->move($destination, $filename);
 
     $fileData = [
         'file_url' => asset('chat-files/' . $filename),
         'file_name' => $file->getClientOriginalName(),
-        'file_size' => $file->getSize(),
+        'file_size' => $fileSize,
     ];
 }
+
 
             $message = $this->chatService->sendMessage(
                 $chatRoomId,
