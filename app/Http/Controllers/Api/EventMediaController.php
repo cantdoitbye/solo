@@ -30,7 +30,7 @@ class EventMediaController extends Controller
               
             $result = $this->mediaService->uploadMedia(
                 $request->user()->id,
-                $request->file('files'),
+                $request->file('files') ?? [],
                 $request->file('event_image'),
                 $request->session_id
             );
