@@ -91,7 +91,7 @@ class HomeScreenController extends Controller
             'event_spot' => 'nullable|string|in:indoor,outdoor',
             'pet_friendly' => 'nullable|boolean',
             'select_gender' => 'nullable|array',
-            'select_gender.*' => 'string|in:male,female,other',
+            'select_gender.*' => 'string|in:male,female,gay,lesbian,trans,bisexual',
             'accessibility' => 'nullable|array',
             'accessibility.*' => 'string|in:wheelchair_accessible,step_free_entrance',
             'limit' => 'nullable|integer|min:1|max:50',
