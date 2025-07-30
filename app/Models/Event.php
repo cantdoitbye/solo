@@ -80,6 +80,7 @@ class Event extends Model
           'step_completed_at' => 'array',
     'preview_generated_at' => 'datetime',
     'gender_composition_value' => 'integer',
+    'notes' => 'json'
     ];
 
     // Event Creation Steps Constants
