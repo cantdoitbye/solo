@@ -104,12 +104,11 @@ class ChatController extends Controller
         // Handle file upload for personal chats only
         if ($request->hasFile('file')) {
             $file = $request->file('file');
+                        $messageType = $this->detectMessageType($file);
+
             $fileData = $this->handleFileUpload($file);
             
             // Auto-detect message type based on file
-            $messageType = $this->detectMessageType($file);
-              $fileData = $this->handleFileUpload($file);
-                          $messageType = $this->detectMessageType($file);
 
 
         }
@@ -144,28 +143,63 @@ class ChatController extends Controller
 
     /**
  * Handle file upload and return file data
- */
-private function handleFileUpload($file): array
+  */
+// private function handleFileUpload($file): array
+// {
+//     try {
+//         // Generate unique filename
+//         $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        
+//         // Store in chat-media folder
+//         $path = $file->storeAs('chat-media', $filename, 'public');
+        
+//         return [
+//             'file_url' => \Storage::url($path),
+//             'file_name' => $file->getClientOriginalName(),
+//             'file_size' => $file->getSize(),
+//             'mime_type' => $file->getMimeType()
+//         ];
+        
+//     } catch (\Exception $e) {
+//         throw new \Exception('Failed to upload file: ' . $e->getMessage());
+//     }
+// }
+
+private function handleFileUpload($file): array 
 {
     try {
-        // Generate unique filename
-        $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        // Get file properties BEFORE moving the file
+        $originalName = $file->getClientOriginalName();
+        $fileSize = $file->getSize();
+        $mimeType = $file->getMimeType();
+        $extension = $file->getClientOriginalExtension();
         
-        // Store in chat-media folder
-        $path = $file->storeAs('chat-media', $filename, 'public');
+        // Generate unique filename
+        $filename = time() . '_' . uniqid() . '.' . $extension;
+        
+        // Define the path in public folder
+        $publicPath = 'chat-media';
+        $fullPath = public_path($publicPath);
+        
+        // Create directory if it doesn't exist
+        if (!file_exists($fullPath)) {
+            mkdir($fullPath, 0755, true);
+        }
+        
+        // Move file to public folder
+        $file->move($fullPath, $filename);
         
         return [
-            'file_url' => \Storage::url($path),
-            'file_name' => $file->getClientOriginalName(),
-            'file_size' => $file->getSize(),
-            'mime_type' => $file->getMimeType()
+            'file_url' => $publicPath . '/' . $filename,
+            'file_name' => $originalName,
+            'file_size' => $fileSize,
+            'mime_type' => $mimeType
         ];
         
     } catch (\Exception $e) {
         throw new \Exception('Failed to upload file: ' . $e->getMessage());
     }
 }
-
 /**
  * Detect message type based on file
  */
