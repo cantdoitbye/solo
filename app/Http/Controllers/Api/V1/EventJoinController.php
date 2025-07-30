@@ -101,6 +101,7 @@ class EventJoinController extends Controller
                     'event_time' => $event->event_time->format('H:i'),
                     'timezone' => $event->timezone,
                     'tags' => $event->tags,
+                    'notes' => $event->notes,
                     'event_image' => $event->event_image,
  'media' => $eventMedia,      
   'menu_images' => $menuImages,                 
