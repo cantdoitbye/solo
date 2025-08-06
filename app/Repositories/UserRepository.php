@@ -60,10 +60,10 @@ class UserRepository implements UserRepositoryInterface
         return $otp;
     }
 
-    public function completeOnboarding(int $userId): User
+    public function completeOnboarding(int $userId, string $fcmToken): User
     {
         $user = User::findOrFail($userId);
-        $user->update(['onboarding_completed' => true]);
+        $user->update(['onboarding_completed' => true, 'fcm_token' => $fcmToken]);
         return $user;
     }
 }

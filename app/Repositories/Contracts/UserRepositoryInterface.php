@@ -10,5 +10,5 @@ interface UserRepositoryInterface
     public function findById(int $id): ?object;
     public function verifyOtp(int $userId, string $otp): bool;
     public function generateOtp(int $userId): string;
-    public function completeOnboarding(int $userId): object;
+    public function completeOnboarding(int $userId, string $fcmToken): object;
 }

@@ -38,6 +38,8 @@ class User extends Authenticatable
         'city',
         'state',
         'country',
+        'fcm_token',
+        'fcm_token_updated_at',
     ];
 
     protected $hidden = [
@@ -54,6 +56,7 @@ class User extends Authenticatable
         'onboarding_completed' => 'boolean',
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
+        'fcm_token_updated_at' => 'datetime',
     ];
 
     public function isOtpValid(string $otp): bool
@@ -193,4 +196,43 @@ public function isAdminOfChatRoom(ChatRoom $chatRoom): bool
 {
     return $chatRoom->isAdmin($this->id);
 }
+
+  // Add notification-related relationships
+    public function notificationLogs(): HasMany
+    {
+        return $this->hasMany(NotificationLog::class);
+    }
+
+    // FCM token methods
+    public function updateFcmToken(string $token): bool
+    {
+        return $this->update([
+            'fcm_token' => $token,
+            'fcm_token_updated_at' => now(),
+        ]);
+    }
+
+    public function clearFcmToken(): bool
+    {
+        return $this->update([
+            'fcm_token' => null,
+            'fcm_token_updated_at' => null,
+        ]);
+    }
+
+    public function hasFcmToken(): bool
+    {
+        return !empty($this->fcm_token);
+    }
+
+    // Scopes
+    public function scopeWithFcmToken($query)
+    {
+        return $query->whereNotNull('fcm_token');
+    }
+
+    public function scopeOnboardingCompleted($query)
+    {
+        return $query->where('onboarding_completed', true);
+    }
 }

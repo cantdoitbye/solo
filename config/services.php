@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+         'firebase' => [
+        'project_id' => env('FCM_PROJECT_ID'),
+        'fcm_endpoint' => env('FCM_ENDPOINT', 'https://fcm.googleapis.com/v1/projects/' . env('FCM_PROJECT_ID') . '/messages:send'),
+        'service_account_path' => storage_path('app/private/service_account.json'),
+        'batch_size' => env('FCM_BATCH_SIZE', 100),
+        'retry_attempts' => env('FCM_RETRY_ATTEMPTS', 3),
+        'timeout' => env('FCM_TIMEOUT', 30),
+    ]
+
 ];

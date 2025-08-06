@@ -36,7 +36,7 @@ class OnboardingService
         ];
     }
 
-  public function verifyOtp(int $userId, string $otp): array
+  public function verifyOtp(int $userId, string $otp, string $fcmToken = null): array
 {
     $isValid = $this->userRepository->verifyOtp($userId, $otp);
     
@@ -51,6 +51,9 @@ class OnboardingService
         // Generate API token for existing user
         $token = $user->createToken('solo-app-token')->plainTextToken;
         
+          $this->userRepository->update($userId, [
+            'fcm_token' => $fcmToken ? $fcmToken : $user->fcm_token
+        ]);
         return [
             'user_id' => $userId,
             'verified' => true,
@@ -256,7 +259,7 @@ class OnboardingService
     ];
 }
 
-    public function completeOnboarding(int $userId): array
+    public function completeOnboarding(int $userId, string $fcmToken): array
     {
         $user = $this->userRepository->findById($userId);
         
@@ -283,7 +286,7 @@ class OnboardingService
         $token = $user->createToken('solo-app-token')->plainTextToken;
 
         
-        $user = $this->userRepository->completeOnboarding($userId);
+        $user = $this->userRepository->completeOnboarding($userId, $fcmToken);
         
         return [
             'user_id' => $userId,
