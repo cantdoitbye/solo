@@ -54,7 +54,7 @@ class SwipeController extends Controller
     {
         $request->validate([
             'target_user_id' => 'required|integer|exists:users,id',
-            'action' => ['required', Rule::in(['like', 'pass', 'super_like', 'gift', 'chat_request'])]
+            'action' => ['required', Rule::in(['like', 'pass', 'super_like', 'date_request', 'chat_request'])]
         ]);
 
         try {
