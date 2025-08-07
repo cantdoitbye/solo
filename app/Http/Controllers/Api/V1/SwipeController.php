@@ -54,7 +54,7 @@ class SwipeController extends Controller
     {
         $request->validate([
             'target_user_id' => 'required|integer|exists:users,id',
-            'action' => ['required', Rule::in(['like', 'pass', 'super_like'])]
+            'action' => ['required', Rule::in(['like', 'pass', 'super_like', 'gift', 'chat_request'])]
         ]);
 
         try {
@@ -72,13 +72,11 @@ class SwipeController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $result,
-                'api_version' => 'v1'
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),
-                'api_version' => 'v1'
             ], 400);
         }
     }

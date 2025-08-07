@@ -22,7 +22,6 @@ class ProfileController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $profile,
-                'api_version' => 'v1'
             ]);
         } catch (\Exception $e) {
             return response()->json([
