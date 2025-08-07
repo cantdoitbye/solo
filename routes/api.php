@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\HomeScreenController;
 use App\Http\Controllers\Api\V1\OneOnOneDateController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\SuggestedLocationsController;
+use App\Http\Controllers\Api\V1\SwipeController;
 
 Route::prefix('onboarding')->group(function () {
     Route::post('phone/initiate', [OnboardingController::class, 'initiatePhoneVerification']);
@@ -35,7 +36,10 @@ Route::prefix('onboarding')->group(function () {
 Route::middleware(['auth:sanctum', 'api.auth'])->group(function () {
     
      Route::get('profile', [ProfileController::class, 'getProfile']);
-    Route::get('profile/stats', [ProfileController::class, 'getProfileStats']);
+       Route::put('profile', [ProfileController::class, 'updateProfile']);
+    Route::put('profile/location', [ProfileController::class, 'updateLocation']); // ADD THIS LINE
+
+     Route::get('profile/stats', [ProfileController::class, 'getProfileStats']);
     
     // Authentication
     Route::post('logout', [ProfileController::class, 'logout']);
@@ -167,6 +171,13 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
         Route::get('rooms/{chatRoomId}/messages', [ChatController::class, 'getChatMessages'])->name('messages');
         Route::post('rooms/{chatRoomId}/send', [ChatController::class, 'sendMessage'])->name('send');
         Route::post('personal/create', [ChatController::class, 'createPersonalChat'])->name('personal.create');
+    });
+
+
+      Route::prefix('swipe')->group(function () {
+        Route::get('discover', [SwipeController::class, 'getProfiles']);
+        Route::post('action', [SwipeController::class, 'swipe']);
+        Route::get('profile/{profileId}', [SwipeController::class, 'getProfileDetails']);
     });
     
     

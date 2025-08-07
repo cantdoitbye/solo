@@ -40,6 +40,8 @@ class OlosTransaction extends Model
     const TRANSACTION_TYPE_EVENT_REFUND = 'event_refund';
     const TRANSACTION_TYPE_PURCHASE = 'purchase';
     const TRANSACTION_TYPE_REFERRAL_BONUS = 'referral_bonus';
+    const TRANSACTION_TYPE_CHECK_PROFILE = 'check_profile';
+
 
     const STATUS_PENDING = 'pending';
     const STATUS_COMPLETED = 'completed';

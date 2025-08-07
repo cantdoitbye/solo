@@ -202,4 +202,44 @@ class ProfileService
             'missing_fields' => array_keys(array_filter($fields, fn($v) => !$v))
         ];
     }
+
+    public function updateUserProfile(int $userId, array $updateData): array
+{
+    $user = $this->userRepository->findById($userId);
+    
+    if (!$user) {
+        throw new \Exception('User not found');
+    }
+
+    // Validate age if provided
+    if (isset($updateData['age']) && ($updateData['age'] < 18 || $updateData['age'] > 100)) {
+        throw new \Exception('Age must be between 18 and 100');
+    }
+
+    // Validate bio length if provided
+    if (isset($updateData['bio']) && (strlen($updateData['bio']) > 500)) {
+        throw new \Exception('Bio cannot exceed 500 characters');
+    }
+
+    // Validate name if provided
+    if (isset($updateData['name']) && (empty(trim($updateData['name'])) || strlen($updateData['name']) > 255)) {
+        throw new \Exception('Name is required and cannot exceed 255 characters');
+    }
+
+    // Update user data
+    $updatedUser = $this->userRepository->update($userId, $updateData);
+
+    // Return updated profile data
+    return [
+        'user_id' => $userId,
+        'name' => $updatedUser->name,
+        'age' => $updatedUser->age ?? null,
+        'gender' => $updatedUser->gender ?? null,
+        'bio' => $updatedUser->bio,
+        'profile_photo' => $updatedUser->profile_photo,
+        'profile_photo_url' => $updatedUser->profile_photo ? asset($updatedUser->profile_photo) : null,
+        'updated_at' => $updatedUser->updated_at->toISOString(),
+        'message' => 'Profile updated successfully'
+    ];
+}
 }
