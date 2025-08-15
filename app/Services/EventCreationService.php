@@ -105,7 +105,10 @@ class EventCreationService
                 'host_responsibilities_accepted' => true, // Auto-accept since no UI step
                 
                 // Status and completion
-                'status' => 'draft',
+                'status' => 'publiched', // Default to published
+                'notes' => '',
+                'published_at' => now(),
+                'cancelled_at' => null,
                 'current_step' => 'completed', // All steps done in one API
                 'step_completed_at' => json_encode([
                     'basic_info' => now()->toISOString(),
