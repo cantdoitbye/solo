@@ -270,7 +270,7 @@ class OnboardingService
         // Validate required fields
         $requiredFields = [
             'phone_verified_at',
-            'connection_type',
+            // 'connection_type',
             'search_radius',
             // 'interests',
             'bio',

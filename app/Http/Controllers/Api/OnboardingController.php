@@ -74,7 +74,7 @@ class OnboardingController extends Controller
     {
         $request->validate([
             'user_id' => 'required|integer|exists:users,id',
-            'connection_type' => ['required', Rule::in(['social', 'dating', 'both'])],
+            'connection_type' => ['nullable', Rule::in(['social', 'dating', 'both'])],
         ]);
 
         try {

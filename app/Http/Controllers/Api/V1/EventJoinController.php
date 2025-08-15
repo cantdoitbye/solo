@@ -27,18 +27,16 @@ class EventJoinController extends Controller
     }
 
 
-    public function getEventDetails(Request $request, int $eventId): JsonResponse
+  public function getEventDetails(Request $request, int $eventId): JsonResponse
 {
     try {
         $userId = $request->user()->id;
         
-        // Get event with all necessary relationships
+        // Get event with necessary relationships (UPDATED for new structure)
         $event = Event::with([
-            'host', 
-            'venueType', 
-            'venueCategory', 
-            'media',
-            'menuImages',
+            'host:id,name,phone_number', 
+            'suggestedLocation:id,name,description,category,google_maps_url',
+            'suggestedLocation.primaryImage:id,suggested_location_id,image_url,is_primary',
             'attendees' => function ($query) {
                 $query->whereIn('status', ['interested', 'confirmed']);
             }
@@ -74,21 +72,14 @@ class EventJoinController extends Controller
         // Get user's current Olos balance
         $userOlosBalance = app(OlosService::class)->getUserBalance($userId);
 
-          // Process event media to include file_url
-        $eventMedia = $event->media->map(function ($media) {
-            return [
-                'id' => $media->id,
-                'media_type' => $media->media_type,
-                'file_url' => $media->file_url,
-            ];
-        })->toArray();
-
-         $menuImages = $event->menuImages->map(function ($menu) {
-            return [
-                'id' => $menu->id,
-                'file_url' => $menu->file_url
-            ];
-        })->toArray();
+        // Check if event is gender balanced
+        $isGenderBalanced = $this->isEventGenderBalanced($event);
+        
+        // Get gender-specific slots if gender balanced
+        $genderSlots = null;
+        if ($isGenderBalanced) {
+            $genderSlots = $this->getGenderSlots($event, $currentTotalAttendees);
+        }
 
         return response()->json([
             'success' => true,
@@ -100,22 +91,25 @@ class EventJoinController extends Controller
                     'event_date' => $event->event_date->toDateString(),
                     'event_time' => $event->event_time->format('H:i'),
                     'timezone' => $event->timezone,
-                    'tags' => $event->tags,
                     'notes' => $event->notes,
-                    'event_image' => $event->event_image,
- 'media' => $eventMedia,      
-  'menu_images' => $menuImages,                 
-                    // Venue details
-                    'venue' => [
-                        'type' => $event->venueType->name ?? null,
-                        'category' => $event->venueCategory->name ?? null,
-                        'name' => $event->venue_name,
-                        'address' => $event->venue_address,
+                    
+                    // UPDATED: Location details from SuggestedLocation
+                    'location' => [
+                        'suggested_location_id' => $event->suggested_location_id,
+                        'name' => $event->suggestedLocation->name ?? 'Custom Location',
+                        'description' => $event->suggestedLocation->description ?? null,
+                        'category' => $event->suggestedLocation->category ?? null,
+                        'venue_name' => $event->venue_name,
+                        'venue_address' => $event->venue_address,
                         'city' => $event->city,
                         'state' => $event->state,
                         'country' => $event->country,
                         'latitude' => $event->latitude,
                         'longitude' => $event->longitude,
+                        'google_maps_url' => $event->suggestedLocation->google_maps_url ?? null,
+                        'image_url' => $event->suggestedLocation && $event->suggestedLocation->primaryImage 
+                            ? $event->suggestedLocation->primaryImage->image_url 
+                            : null,
                     ],
                     
                     // Host details
@@ -125,28 +119,31 @@ class EventJoinController extends Controller
                         'phone_number' => $event->host->phone_number ?? null,
                     ],
                     
-                    // Attendee requirements
+                    // UPDATED: Requirements with gender balance info
                     'requirements' => [
-                        'min_group_size' => $event->min_group_size,
-                        'max_group_size' => $event->max_group_size,
+                        'group_size' => $event->min_group_size, // Simplified - min and max are same
                         'min_age' => $event->min_age,
                         'max_age' => $event->max_age,
-                        'gender_rule_enabled' => $event->gender_rule_enabled,
-                        'allowed_genders' => $event->allowed_genders,
+                        'age_restriction_disabled' => $event->age_restriction_disabled ?? false,
+                        'age_range_display' => $this->getAgeRangeDisplay($event),
+                        'gender_balanced' => $isGenderBalanced,
                         'gender_composition' => $event->gender_composition,
+                        'allowed_genders' => $event->allowed_genders,
                     ],
                     
-                    // Cost and capacity
+                    // Cost and capacity (UPDATED with gender balance)
                     'pricing' => [
-                        'token_cost_per_attendee' => $event->token_cost_per_attendee,
-                        'is_free' => $event->token_cost_per_attendee == 0,
+                        'token_cost_per_attendee' => 5.00, // Fixed at 5 olos
+                        'is_free' => false, // Always costs 5 olos
+                        'total_cost' => $event->min_group_size * 5.00,
                     ],
                     
                     'capacity' => [
                         'current_attendees' => $currentTotalAttendees,
-                        'max_capacity' => $event->max_group_size,
+                        'group_size' => $event->min_group_size,
                         'available_slots' => $availableSlots,
                         'is_full' => $availableSlots !== null && $availableSlots <= 0,
+                        'gender_slots' => $genderSlots, // NEW: Gender-specific slots
                     ],
                     
                     // Status
@@ -154,7 +151,7 @@ class EventJoinController extends Controller
                     'published_at' => $event->published_at?->toISOString(),
                 ],
                 
-                // User-specific data
+                // User-specific data (UPDATED)
                 'user_context' => [
                     'can_join' => $isJoinable && !$userAttendance,
                     'is_host' => $event->host_id === $userId,
@@ -162,10 +159,8 @@ class EventJoinController extends Controller
                     'attendance_status' => $userAttendance?->status,
                     'joined_members_count' => $userAttendance?->total_members ?? 0,
                     'olos_balance' => $userOlosBalance,
-                    'can_afford_one_member' => $userOlosBalance >= $event->token_cost_per_attendee,
-                    'max_affordable_members' => $event->token_cost_per_attendee > 0 
-                        ? floor($userOlosBalance / $event->token_cost_per_attendee) 
-                        : 10, // If free event, max 10 members
+                    'can_afford_one_member' => $userOlosBalance >= 5.00, // Fixed at 5 olos
+                    'max_affordable_members' => floor($userOlosBalance / 5.00),
                 ],
                 
                 // Validation messages
@@ -183,6 +178,58 @@ class EventJoinController extends Controller
             'message' => 'Failed to fetch event details'
         ], 500);
     }
+}
+
+/**
+ * Check if event is gender balanced
+ */
+private function isEventGenderBalanced($event): bool
+{
+    if (!$event->gender_rule_enabled) {
+        return false;
+    }
+    
+    $composition = $event->gender_composition ?? '';
+    return strpos($composition, 'Gender balanced') !== false;
+}
+
+/**
+ * Get gender-specific slots for gender balanced events
+ */
+private function getGenderSlots($event, int $currentAttendees): ?array
+{
+    if (!$this->isEventGenderBalanced($event)) {
+        return null;
+    }
+    
+    $groupSize = $event->min_group_size;
+    $maleSlots = $groupSize / 2;
+    $femaleSlots = $groupSize / 2;
+    
+    // TODO: Get actual gender count from current attendees
+    // For now, using placeholder values
+    $currentMales = 0; 
+    $currentFemales = 0;
+    
+    return [
+        'male_spots_total' => $maleSlots,
+        'female_spots_total' => $femaleSlots,
+        'male_spots_left' => max(0, $maleSlots - $currentMales),
+        'female_spots_left' => max(0, $femaleSlots - $currentFemales),
+        'ratio' => "{$maleSlots}:{$femaleSlots}",
+    ];
+}
+
+/**
+ * Get age range display text
+ */
+private function getAgeRangeDisplay($event): string
+{
+    if ($event->age_restriction_disabled ?? false) {
+        return 'All ages welcome';
+    }
+    
+    return "Ages {$event->min_age}-{$event->max_age}";
 }
 
 
