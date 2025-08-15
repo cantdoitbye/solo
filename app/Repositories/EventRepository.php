@@ -27,7 +27,7 @@ class EventRepository implements EventRepositoryInterface
 
     public function findById(int $id): ?Event
     {
-        return Event::with(['host', 'venueType', 'venueCategory', 'attendees', 'media', 'itineraries'])->find($id);
+        return Event::with(['host', 'attendees'])->find($id);
     }
 
     public function findByIdAndHost(int $id, int $hostId): ?Event

@@ -105,10 +105,10 @@ class EventCreationService
                 'host_responsibilities_accepted' => true, // Auto-accept since no UI step
                 
                 // Status and completion
-                'status' => 'published', // Default to published
-                'notes' => '',
-                'published_at' => now(),
-                'cancelled_at' => null,
+                // 'status' => 'draft', // Default to published
+                // 'notes' => '',
+                // 'published_at' => now(),
+                // 'cancelled_at' => null,
                 'current_step' => 'completed', // All steps done in one API
                 'step_completed_at' => json_encode([
                     'basic_info' => now()->toISOString(),
@@ -171,7 +171,7 @@ class EventCreationService
     /**
      * Publish event (simplified - no complex validation)
      */
-    public function publishEvent(int $eventId, int $hostId): array
+  public function publishEvent(int $eventId, int $hostId): array
     {
         $event = $this->validateEventAccess($eventId, $hostId);
         
@@ -182,37 +182,21 @@ class EventCreationService
         // Simple validation - just check required fields exist
         $this->validateEventForPublishing($event);
         
-        // Publish the event
+        // Publish the event - just update status
         $this->eventRepository->update($eventId, [
             'status' => 'published',
             'published_at' => now(),
             'preview_generated_at' => now(),
         ]);
         
-        $publishedEvent = $this->eventRepository->findById($eventId);
-        
-        // Load suggested location for response
-        $suggestedLocation = SuggestedLocation::find($publishedEvent->suggested_location_id);
-        
         return [
-            'event_id' => $publishedEvent->id,
+            'event_id' => $eventId,
             'status' => 'published',
-            'published_at' => $publishedEvent->published_at->toISOString(),
-            'name' => $publishedEvent->name,
-            'event_date' => $publishedEvent->event_date->toDateString(),
-            'event_time' => $publishedEvent->event_time->format('H:i'),
-            'location' => [
-                'name' => $suggestedLocation->name ?? $publishedEvent->venue_name,
-                'venue_name' => $publishedEvent->venue_name,
-                'city' => $publishedEvent->city,
-                'category' => $suggestedLocation->category ?? null,
-            ],
-            'group_size' => $publishedEvent->min_group_size,
-            'token_cost_per_attendee' => $publishedEvent->token_cost_per_attendee,
-            'age_range' => "{$publishedEvent->min_age}-{$publishedEvent->max_age}",
             'message' => 'Event published successfully and is now live!'
         ];
     }
+
+
 
     /**
      * Delete draft event
@@ -339,7 +323,7 @@ class EventCreationService
     /**
      * Validate event is ready for publishing (simplified)
      */
-    private function validateEventForPublishing(Event $event): void
+   private function validateEventForPublishing(Event $event): void
     {
         $requiredFields = [
             'name' => 'Event name',
