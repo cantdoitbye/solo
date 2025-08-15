@@ -105,7 +105,7 @@ class EventCreationService
                 'host_responsibilities_accepted' => true, // Auto-accept since no UI step
                 
                 // Status and completion
-                'status' => 'publiched', // Default to published
+                'status' => 'published', // Default to published
                 'notes' => '',
                 'published_at' => now(),
                 'cancelled_at' => null,
