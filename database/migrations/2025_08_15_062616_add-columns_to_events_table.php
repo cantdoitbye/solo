@@ -33,8 +33,8 @@ return new class extends Migration
             
             // Indexes for performance
             // $table->index(['status', 'published_at']);
-            $table->index(['city', 'state', 'event_date']); // For location-based queries
-            $table->index(['min_age', 'max_age', 'age_restriction_disabled']); // For age-based visibility
+            // $table->index(['city', 'state', 'event_date']); // For location-based queries
+            // $table->index(['min_age', 'max_age', 'age_restriction_disabled']); // For age-based visibility
         });
     }
 
