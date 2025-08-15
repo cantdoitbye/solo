@@ -47,8 +47,8 @@ class EventCreationService
             // Auto-calculate age range (±8 years from creator's age)
             $ageRange = $this->calculateAgeRange($creator, $data['disable_age_restriction'] ?? false);
             
-            // Auto-determine gender rules based on creator
-            $genderRules = $this->determineGenderRules($creator);
+            // Auto-determined gender rules (UPDATED with gender balance)
+            $genderRules = $this->determineGenderRules($creator, $data);
             
             // Create complete event data
             $eventData = [
@@ -68,11 +68,13 @@ class EventCreationService
                 'max_age' => $ageRange['max_age'],
                 'age_restriction_disabled' => $data['disable_age_restriction'] ?? false,
                 
-                // Auto-determined gender rules
+                // Auto-determined gender rules (UPDATED with gender balance)
                 'gender_rule_enabled' => $genderRules['enabled'],
                 'gender_composition' => $genderRules['composition'],
                 'gender_composition_value' => $genderRules['value'],
                 'allowed_genders' => $genderRules['allowed_genders'],
+                'gender_balanced' => $genderRules['gender_balanced'],
+                'gender_ratio' => $genderRules['gender_ratio'],
                 
                 // Location - Reference to SuggestedLocation
                 'suggested_location_id' => $suggestedLocation->id,
@@ -152,6 +154,8 @@ class EventCreationService
                     'gender_rule_enabled' => $event->gender_rule_enabled,
                     'composition' => $event->gender_composition,
                     'allowed_genders' => $event->allowed_genders,
+                    'gender_balanced' => $event->gender_balanced,
+                    'gender_ratio' => $event->gender_ratio,
                     'creator_gender' => $creator->gender
                 ],
                 'created_at' => $event->created_at->toISOString(),
@@ -250,22 +254,66 @@ class EventCreationService
     }
 
     /**
-     * Auto-determine gender rules based on creator's preferences
+     * Auto-determine gender rules based on creator's preferences (UPDATED with old logic)
      */
-    private function determineGenderRules(User $creator): array
+    private function determineGenderRules(User $creator, array $data): array
     {
-        // Default to inclusive settings
-        $defaultGenders = ['male', 'female', 'gay', 'lesbian', 'trans', 'bisexual'];
+        // Check if gender balanced event is requested
+        $genderBalanced = $data['gender_balanced'] ?? false;
         
-        // You can customize this logic based on creator's preferences
-        // For now, keeping it simple and inclusive
+        if ($genderBalanced) {
+            // Use the old gender processing logic for gender balanced events
+            return $this->processGenderRules($data);
+        }
+        
+        // Default to inclusive settings (no gender restrictions)
         return [
-            'enabled' => false, // Default to no gender restrictions
+            'enabled' => false,
             'composition' => null,
             'value' => null,
-            'allowed_genders' => $defaultGenders
+            'allowed_genders' => ['male', 'female', 'gay', 'lesbian', 'trans', 'bisexual'],
+            'gender_balanced' => false,
+            'gender_ratio' => null,
         ];
     }
+
+    /**
+     * Process Gender Rules Logic (SIMPLIFIED - Always 1:1 for gender balanced)
+     */
+    private function processGenderRules(array $data): array
+    {
+        $groupSize = $data['group_size']; // Use group_size from new API
+        
+        // For gender balanced events, ALWAYS use 1:1 ratio (equal representation)
+        $genderRatio = '1:1';
+        
+        // Only allow male and female for gender balanced events
+        $selectedGenders = ['male', 'female'];
+        
+        // Validate group size is even for 1:1 ratio
+        if ($groupSize % 2 !== 0) {
+            throw new \Exception('Group size must be even for gender balanced events');
+        }
+        
+        // Calculate equal split
+        $genderCompositionValue = $groupSize / 2;
+        $maleCount = $genderCompositionValue;
+        $femaleCount = $genderCompositionValue;
+        
+        return [
+            'enabled' => true,
+            'composition' => "Gender balanced: {$maleCount} males and {$femaleCount} females",
+            'value' => $genderCompositionValue,
+            'allowed_genders' => $selectedGenders,
+            'gender_balanced' => true,
+            'gender_ratio' => $genderRatio, // Always 1:1
+        ];
+    }
+
+    // REMOVED METHODS - No longer needed with fixed 1:1 ratio:
+    // - calculateGenderComposition() - always equal split
+    // - isValidGroupSizeForRatio() - only need to check even numbers
+    // - getGenderRatioValue() - always 50%
 
     /**
      * Validate user has access to event

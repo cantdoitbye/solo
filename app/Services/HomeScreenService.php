@@ -142,13 +142,8 @@ class HomeScreenService
                     'city' => $eventData['city'] ?? null,
                 ],
                 
-                // SIMPLIFIED: Basic attendee info
-                'attendees' => [
-                    'current_count' => $attendeesCount,
-                    'group_size' => $eventData['min_group_size'], // Single group size
-                    'available_spots' => $availableSpots,
-                    'spots_text' => $availableSpots > 0 ? "{$availableSpots} spots left" : "Full"
-                ],
+                // SIMPLIFIED: Basic attendee info (UPDATED with gender balance)
+                'attendees' => $this->getAttendeeInfo($eventData),
                 
                 // SIMPLIFIED: Fixed cost info
                 'cost' => [
@@ -271,5 +266,116 @@ class HomeScreenService
         }, $dates);
     }
 
+    /**
+     * Get attendee information including gender balance (NEW)
+     */
+    private function getAttendeeInfo(array $eventData): array
+    {
+        $maxGroupSize = $eventData['max_group_size'] ?? $eventData['min_group_size'] ?? 0;
+        $attendeesCount = $eventData['attendees_count'] ?? 0;
+        $availableSpots = $maxGroupSize - $attendeesCount;
+        
+        $baseInfo = [
+            'current_count' => $attendeesCount,
+            'group_size' => $eventData['min_group_size'],
+            'available_spots' => $availableSpots,
+            'spots_text' => $availableSpots > 0 ? "{$availableSpots} spots left" : "Full"
+        ];
+
+        // Add gender balance information if enabled
+        if ($this->isGenderBalancedEvent($eventData)) {
+            $genderSlots = $this->calculateGenderSlots($eventData);
+            $currentGenderCount = $this->getCurrentGenderCount($eventData);
+            
+            $baseInfo['gender_balance'] = [
+                'enabled' => true,
+                'ratio' => "{$genderSlots['male']}:{$genderSlots['female']}", // Show actual numbers (3:3)
+                'male_spots_left' => max(0, $genderSlots['male'] - $currentGenderCount['male']),
+                'female_spots_left' => max(0, $genderSlots['female'] - $currentGenderCount['female']),
+                'male_spots_total' => $genderSlots['male'],
+                'female_spots_total' => $genderSlots['female'],
+                'spots_text' => $this->getGenderSpotsText($genderSlots, $currentGenderCount)
+            ];
+        } else {
+            $baseInfo['gender_balance'] = [
+                'enabled' => false
+            ];
+        }
+
+        return $baseInfo;
+    }
+
+    /**
+     * Check if event is gender balanced (based on existing database fields)
+     */
+    private function isGenderBalancedEvent(array $eventData): bool
+    {
+        // Check if gender rules are enabled
+        if (!($eventData['gender_rule_enabled'] ?? false)) {
+            return false;
+        }
+        
+        // Check if composition contains "Gender balanced" text
+        $composition = $eventData['gender_composition'] ?? '';
+        return strpos($composition, 'Gender balanced') !== false;
+    }
+
+    /**
+     * Calculate gender slots based on ratio (FIXED - Equal split for gender balanced)
+     */
+    private function calculateGenderSlots(array $eventData): array
+    {
+        $totalSlots = $eventData['min_group_size'] ?? 0;
+        
+        // For gender balanced events, ALWAYS equal split (ignore composition_value)
+        if ($this->isGenderBalancedEvent($eventData)) {
+            $halfSlots = $totalSlots / 2;
+            return [
+                'male' => $halfSlots,
+                'female' => $halfSlots
+            ];
+        }
+        
+        // For non-gender balanced events
+        return [
+            'male' => $totalSlots,
+            'female' => 0
+        ];
+    }
+
+    /**
+     * Get current gender count (placeholder - needs attendee gender data)
+     */
+    private function getCurrentGenderCount(array $eventData): array
+    {
+        // TODO: Implement actual gender counting from attendees
+        // For now, returning zeros as placeholder
+        return [
+            'male' => 0,
+            'female' => 0
+        ];
+        
+        // This would require joining with attendees and users tables
+        // to get actual gender counts from current attendees
+    }
+
+    /**
+     * Generate gender spots text for display
+     */
+    private function getGenderSpotsText(array $genderSlots, array $currentGenderCount): string
+    {
+        $maleSpotsLeft = max(0, $genderSlots['male'] - $currentGenderCount['male']);
+        $femaleSpotsLeft = max(0, $genderSlots['female'] - $currentGenderCount['female']);
+        
+        if ($maleSpotsLeft === 0 && $femaleSpotsLeft === 0) {
+            return "Full";
+        } elseif ($maleSpotsLeft === 0) {
+            return "{$femaleSpotsLeft} female spots left";
+        } elseif ($femaleSpotsLeft === 0) {
+            return "{$maleSpotsLeft} male spots left";
+        } else {
+            return "{$maleSpotsLeft}M, {$femaleSpotsLeft}F spots left";
+        }
+    }
    
 }

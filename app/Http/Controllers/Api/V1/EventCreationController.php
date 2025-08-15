@@ -36,6 +36,9 @@ class EventCreationController extends Controller
             'event_time' => 'required|date_format:H:i',
             'timezone' => 'nullable|string|max:50',
             
+            // Gender Balance Settings
+            'gender_balanced' => 'nullable|boolean', // NEW: Gender balanced toggle (always 1:1 ratio)
+            
             // Optional settings
             'disable_age_restriction' => 'nullable|boolean', // Toggle to remove 8-year age restriction
             'cancellation_policy' => 'nullable|string|max:1000',
