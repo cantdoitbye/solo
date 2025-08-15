@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
 class SuggestedLocation extends Model
 {
     use HasFactory;
@@ -63,4 +66,19 @@ class SuggestedLocation extends Model
         }
         return $query;
     }
+
+        public function images(): HasMany
+    {
+        return $this->hasMany(LocationImage::class);
+    }
+
+    /**
+     * Get the primary image for this suggested location
+     */
+    public function primaryImage(): HasOne
+    {
+        return $this->hasOne(LocationImage::class)->where('is_primary', true);
+    }
+
+
 }

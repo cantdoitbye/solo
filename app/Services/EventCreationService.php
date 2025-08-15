@@ -2,460 +2,213 @@
 
 namespace App\Services;
 
+use App\Models\Event;
+use App\Models\User;
+use App\Models\SuggestedLocation;
 use App\Models\VenueType;
+use App\Models\VenueCategory;
 use App\Repositories\Contracts\EventRepositoryInterface;
-use App\Services\EventMediaService;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
 
 class EventCreationService
 {
     private EventRepositoryInterface $eventRepository;
-    private EventMediaService $mediaService;
 
-    public function __construct(
-        EventRepositoryInterface $eventRepository,
-        EventMediaService $mediaService
-    ) {
+    public function __construct(EventRepositoryInterface $eventRepository)
+    {
         $this->eventRepository = $eventRepository;
-        $this->mediaService = $mediaService;
     }
-
-
-  /**
- * Combined Steps 1-5 (Create OR Edit)
- */
-public function createEventBulk(int $hostId, array $data, ?int $eventId = null): array
-{
-    // Process gender rules
-    $genderRuleData = $this->processGenderRules($data);
-    // $groupSize = $data['max_group_size'] ?? $data['min_group_size'];
-        // $minGroupSize = $data['min_group_size'];
-
-        if($data['venue_type']){
-            $venueType = VenueType::where('name', 'Closed Campus')->first();
-        }
-        else{
-            $venueType = VenueType::where('name', 'Open Area')->first();
-
-        }
-
-        $data['venue_type_id'] = $venueType->id;
-
-    // $maxGroupSize = null; 
-    $eventData = [
-    // Step 1: Basic Info
-    'name' => $data['name'],
-    'description' => $data['description'],
-    'tags' => $data['tags'] ?? [],
-    
-    // Step 2: Venue & Location (ALL FIELDS)
-    'venue_type_id' => $data['venue_type_id'],
-    'venue_category_id' => $data['venue_category_id'],
-    'venue_name' => $data['venue_name'] ?? null,
-    'venue_address' => $data['venue_address'] ?? null,
-    'google_place_id' => $data['google_place_id'] ?? null,
-    'latitude' => $data['latitude'] ?? null,
-    'longitude' => $data['longitude'] ?? null,
-    'city' => $data['city'] ?? null,
-    'state' => $data['state'] ?? null,
-    'country' => $data['country'] ?? null,
-    'postal_code' => $data['postal_code'] ?? null,
-    'google_place_details' => $data['google_place_details'] ?? null,
-    
-    // Step 3: Date & Time
-    'event_date' => $data['event_date'],
-    'event_time' => $data['event_time'],
-    'timezone' => $data['timezone'] ?? 'UTC',
-    
-    // Step 4: Attendees Setup
-     'min_group_size' => $data['min_group_size'],
-        'max_group_size' => $data['max_group_size'],
-    'min_age' => $data['min_age'],
-    'max_age' => $data['max_age'],
-    'gender_rule_enabled' => $genderRuleData['gender_rule_enabled'],
-    'gender_composition' => $genderRuleData['gender_composition'],
-    'gender_composition_value' => $genderRuleData['gender_composition_value'],
-    'allowed_genders' => $genderRuleData['allowed_genders'],
-    
-    // Step 5: Token & Payment
-    'token_cost_per_attendee' => $data['token_cost_per_attendee'],
-        'total_tokens_display' => $data['max_group_size'] * $data['token_cost_per_attendee'],
-];
-    
-    if ($eventId) {
-        // EDIT MODE - Update existing event
-        $event = $this->validateEventAccess($eventId, $hostId);
-        $sessionId = $event->session_id;
-        
-        // Update with completed steps
-        $eventData['current_step'] = 'token_payment';
-        $eventData['step_completed_at'] = json_encode([
-            'basic_info' => now()->toISOString(),
-            'venue_location' => now()->toISOString(),
-            'date_time' => now()->toISOString(),
-            'attendees_setup' => now()->toISOString(),
-            'token_payment' => now()->toISOString(),
-        ]);
-        
-        $this->eventRepository->update($eventId, $eventData);
-        $message = 'Event updated successfully (Steps 1-5)';
-        
-    } else {
-        // CREATE MODE - New event
-        $sessionId = Str::uuid()->toString();
-        $eventData['host_id'] = $hostId;
-        $eventData['session_id'] = $sessionId;
-        $eventData['current_step'] = 'token_payment';
-        $eventData['step_completed_at'] = json_encode([
-            'basic_info' => now()->toISOString(),
-            'venue_location' => now()->toISOString(),
-            'date_time' => now()->toISOString(),
-            'attendees_setup' => now()->toISOString(),
-            'token_payment' => now()->toISOString(),
-        ]);
-        $eventData['status'] = 'draft';
-        
-        $event = $this->eventRepository->create($eventData);
-        $eventId = $event->id;
-        $message = 'Event created successfully (Steps 1-5)';
-    }
-
-    return [
-        'event_id' => $eventId,
-        'session_id' => $sessionId,
-        'current_step' => 'token_payment',
-        'next_step' => 'event_history',
-        'completed_steps' => ['basic_info', 'venue_location', 'date_time', 'attendees_setup', 'token_payment'],
-        'progress_percentage' => 62.5,
-        'message' => $message
-    ];
-}
 
     /**
-     * Step 1: Handle Basic Info (Create or Edit)
+     * Create complete event with SuggestedLocation reference
      */
-    public function handleBasicInfo(int $hostId, array $data, ?int $eventId = null): array
+    public function createCompleteEvent(int $hostId, array $data): array
     {
-        if ($eventId) {
-            // Edit existing event
-            $event = $this->validateEventAccess($eventId, $hostId);
-            $this->updateEventStep($event, [
-                'name' => $data['name'],
-                'description' => $data['description'],
-                'tags' => $data['tags'] ?? [],
-            ], 'basic_info');
-            
-            $sessionId = $event->session_id;
-        } else {
-            // Create new event
+        return DB::transaction(function () use ($hostId, $data) {
             $sessionId = Str::uuid()->toString();
+            
+            // Get creator's details for auto-calculations
+            $creator = User::find($hostId);
+            if (!$creator) {
+                throw new \Exception('User not found');
+            }
+            
+            // Get the suggested location
+            $suggestedLocation = SuggestedLocation::with(['primaryImage'])->find($data['location_id']);
+            if (!$suggestedLocation) {
+                throw new \Exception('Selected location not found');
+            }
+            
+            if (!$suggestedLocation->is_active) {
+                throw new \Exception('Selected location is not available');
+            }
+            
+            // Auto-calculate age range (±8 years from creator's age)
+            $ageRange = $this->calculateAgeRange($creator, $data['disable_age_restriction'] ?? false);
+            
+            // Auto-determine gender rules based on creator
+            $genderRules = $this->determineGenderRules($creator);
+            
+            // Create complete event data
             $eventData = [
                 'host_id' => $hostId,
                 'session_id' => $sessionId,
+                
+                // Basic Info
                 'name' => $data['name'],
                 'description' => $data['description'],
-                'tags' => $data['tags'] ?? [],
-                'current_step' => 'basic_info',
-                'step_completed_at' => json_encode(['basic_info' => now()->toISOString()]),
-                'status' => 'draft'
+                
+                // Group size (simplified - min and max are same)
+                'min_group_size' => $data['group_size'],
+                'max_group_size' => $data['group_size'],
+                
+                // Auto-calculated age restrictions
+                'min_age' => $ageRange['min_age'],
+                'max_age' => $ageRange['max_age'],
+                'age_restriction_disabled' => $data['disable_age_restriction'] ?? false,
+                
+                // Auto-determined gender rules
+                'gender_rule_enabled' => $genderRules['enabled'],
+                'gender_composition' => $genderRules['composition'],
+                'gender_composition_value' => $genderRules['value'],
+                'allowed_genders' => $genderRules['allowed_genders'],
+                
+                // Location - Reference to SuggestedLocation
+                'suggested_location_id' => $suggestedLocation->id,
+                'venue_type_id' => $suggestedLocation->venue_type_id,
+                'venue_category_id' => $suggestedLocation->venue_category_id,
+                'venue_name' => $suggestedLocation->venue_name,
+                'venue_address' => $suggestedLocation->venue_address,
+                'google_place_id' => $suggestedLocation->google_place_id,
+                'latitude' => $suggestedLocation->latitude,
+                'longitude' => $suggestedLocation->longitude,
+                'city' => $suggestedLocation->city,
+                'state' => $suggestedLocation->state,
+                'country' => $suggestedLocation->country,
+                'postal_code' => $suggestedLocation->postal_code,
+                'google_place_details' => $suggestedLocation->google_place_details,
+                
+                // Date & Time
+                'event_date' => $data['event_date'],
+                'event_time' => $data['event_time'],
+                'timezone' => $data['timezone'] ?? $creator->timezone ?? 'UTC',
+                
+                // Token Cost - FIXED AT 5 OLOS (backend handling)
+                'token_cost_per_attendee' => 5.00, // Fixed 5 olos as per requirement
+                'total_tokens_display' => $data['group_size'] * 5.00,
+                
+                // Default policies and settings
+                'cancellation_policy' => $data['cancellation_policy'] ?? 'Standard cancellation policy applies',
+                'host_responsibilities_accepted' => true, // Auto-accept since no UI step
+                
+                // Status and completion
+                'status' => 'draft',
+                'current_step' => 'completed', // All steps done in one API
+                'step_completed_at' => json_encode([
+                    'basic_info' => now()->toISOString(),
+                    'completed' => now()->toISOString(),
+                ]),
+                
+                // Remove fields that are no longer needed
+                'tags' => [], // No tags as per requirement
+                'media_urls' => [], // No media upload
+                'past_event_description' => null, // No event history step
+                'itinerary_url' => [], // No itinerary
             ];
+
+            // Create the event
             $event = $this->eventRepository->create($eventData);
-            $eventId = $event->id;
-        }
 
-        return [
-            'event_id' => $eventId,
-            'session_id' => $sessionId,
-            'current_step' => 'basic_info',
-            'next_step' => 'venue_location',
-            'completed_steps' => ['basic_info'],
-            'progress_percentage' => 12.5,
-            'message' => $eventId ? 'Event basic info updated successfully' : 'Event creation initialized successfully'
-        ];
+            return [
+                'event_id' => $event->id,
+                'session_id' => $sessionId,
+                'status' => 'draft',
+                'name' => $event->name,
+                'description' => $event->description,
+                'group_size' => $event->min_group_size,
+                'event_date' => $event->event_date->toDateString(),
+                'event_time' => $event->event_time->format('H:i'),
+                'location' => [
+                    'suggested_location_id' => $suggestedLocation->id,
+                    'name' => $suggestedLocation->name,
+                    'venue_name' => $suggestedLocation->venue_name,
+                    'venue_address' => $suggestedLocation->venue_address,
+                    'city' => $suggestedLocation->city,
+                    'state' => $suggestedLocation->state,
+                    'country' => $suggestedLocation->country,
+                    'category' => $suggestedLocation->category,
+                    'image_url' => $suggestedLocation->primaryImage ? $suggestedLocation->primaryImage->image_url : $suggestedLocation->image_url,
+                ],
+                'token_cost_per_attendee' => $event->token_cost_per_attendee,
+                'total_cost' => $event->total_tokens_display,
+                'age_range' => [
+                    'min_age' => $event->min_age,
+                    'max_age' => $event->max_age,
+                    'auto_calculated' => !($data['disable_age_restriction'] ?? false),
+                    'creator_age' => $creator->age
+                ],
+                'gender_settings' => [
+                    'gender_rule_enabled' => $event->gender_rule_enabled,
+                    'composition' => $event->gender_composition,
+                    'allowed_genders' => $event->allowed_genders,
+                    'creator_gender' => $creator->gender
+                ],
+                'created_at' => $event->created_at->toISOString(),
+                'ready_to_publish' => true,
+                'message' => 'Event created with auto-calculated age and gender restrictions'
+            ];
+        });
     }
 
     /**
-     * Step 2: Handle Venue & Location
-     */
-    public function handleVenueLocation(int $eventId, int $hostId, array $data): array
-    {
-        $event = $this->validateEventAccess($eventId, $hostId);
-        
-        $updateData = [
-            'venue_type_id' => $data['venue_type_id'],
-            'venue_category_id' => $data['venue_category_id'],
-            'venue_name' => $data['venue_name'] ?? null,
-            'venue_address' => $data['venue_address'] ?? null,
-            'google_place_id' => $data['google_place_id'] ?? null,
-            'latitude' => $data['latitude'] ?? null,
-            'longitude' => $data['longitude'] ?? null,
-            'city' => $data['city'] ?? null,
-            'state' => $data['state'] ?? null,
-            'country' => $data['country'] ?? null,
-            'postal_code' => $data['postal_code'] ?? null,
-            'google_place_details' => $data['google_place_details'] ?? null,
-        ];
-
-        $this->updateEventStep($event, $updateData, 'venue_location');
-        $completedSteps = $this->getCompletedSteps($event);
-
-        return [
-            'event_id' => $eventId,
-            'current_step' => 'venue_location',
-            'next_step' => 'date_time',
-            'completed_steps' => $completedSteps,
-            'progress_percentage' => (count($completedSteps) / 8) * 100,
-            'message' => 'Venue and location updated successfully'
-        ];
-    }
-
-    /**
-     * Step 3: Handle Date & Time
-     */
-    public function handleDateTime(int $eventId, int $hostId, array $data): array
-    {
-        $event = $this->validateEventAccess($eventId, $hostId);
-        
-        $updateData = [
-            'event_date' => $data['event_date'],
-            'event_time' => $data['event_time'],
-            'timezone' => $data['timezone'] ?? 'UTC',
-        ];
-
-        $this->updateEventStep($event, $updateData, 'date_time');
-        $completedSteps = $this->getCompletedSteps($event);
-
-        return [
-            'event_id' => $eventId,
-            'current_step' => 'date_time',
-            'next_step' => 'attendees_setup',
-            'completed_steps' => $completedSteps,
-            'progress_percentage' => (count($completedSteps) / 8) * 100,
-            'message' => 'Date and time updated successfully'
-        ];
-    }
-
-    /**
-     * Step 4: Handle Attendees Setup with Gender Logic
-     */
-    public function handleAttendeesSetup(int $eventId, int $hostId, array $data): array
-    {
-        $event = $this->validateEventAccess($eventId, $hostId);
-        
-        // Process gender rules and composition logic
-        $genderRuleData = $this->processGenderRules($data);
-        
-        $updateData = array_merge($genderRuleData, [
-            'min_group_size' => $data['min_group_size'],
-            'max_group_size' => $data['max_group_size'] ?? $data['min_group_size'],
-            'min_age' => $data['min_age'],
-            'max_age' => $data['max_age'],
-        ]);
-
-        $this->updateEventStep($event, $updateData, 'attendees_setup');
-        $completedSteps = $this->getCompletedSteps($event);
-
-        return [
-            'event_id' => $eventId,
-            'current_step' => 'attendees_setup',
-            'next_step' => 'token_payment',
-            'completed_steps' => $completedSteps,
-            'progress_percentage' => (count($completedSteps) / 8) * 100,
-            'gender_composition_value' => $updateData['gender_composition_value'] ?? null,
-            'gender_rule_enabled' => $updateData['gender_rule_enabled'],
-            'message' => 'Attendees setup configured successfully'
-        ];
-    }
-
-    /**
-     * Step 5: Handle Token & Payment
-     */
-    public function handleTokenPayment(int $eventId, int $hostId, array $data): array
-    {
-        $event = $this->validateEventAccess($eventId, $hostId);
-        
-        $tokenCost = $data['token_cost_per_attendee'] ?? 0;
-        $groupSize = $event->max_group_size ?? $event->min_group_size ?? 1;
-        
-        $updateData = [
-            'token_cost_per_attendee' => $tokenCost,
-            'total_tokens_display' => $groupSize * $tokenCost,
-        ];
-
-        $this->updateEventStep($event, $updateData, 'token_payment');
-        $completedSteps = $this->getCompletedSteps($event);
-
-        return [
-            'event_id' => $eventId,
-            'current_step' => 'token_payment',
-            'next_step' => 'event_history',
-            'completed_steps' => $completedSteps,
-            'progress_percentage' => (count($completedSteps) / 8) * 100,
-            'total_cost' => $groupSize * $tokenCost,
-            'cost_per_person' => $tokenCost,
-            'group_size' => $groupSize,
-            'message' => 'Token and payment setup completed'
-        ];
-    }
-
-    /**
-     * Step 6: Handle Event History & Media
-     */
-    public function handleEventHistory(int $eventId, int $hostId, array $data): array
-    {
-        $event = $this->validateEventAccess($eventId, $hostId);
-        
-        $updateData = [
-            'past_event_description' => $data['past_event_description'] ?? null,
-        ];
-
-        // Handle media attachments
-        $mediaAttached = [];
-        if (isset($data['media_session_id']) && !empty($data['media_session_id'])) {
-            // $mediaAttached = $this->mediaService->attachMediaToEvent($eventId, $data['media_session_id']);
-        }
-
-        $this->updateEventStep($event, $updateData, 'event_history');
-        $completedSteps = $this->getCompletedSteps($event);
-
-        return [
-            'event_id' => $eventId,
-            'current_step' => 'event_history',
-            'next_step' => 'host_responsibilities',
-            'completed_steps' => $completedSteps,
-            'progress_percentage' => (count($completedSteps) / 8) * 100,
-            'media_attached' => $mediaAttached,
-            'message' => 'Event history and media updated successfully'
-        ];
-    }
-
-    /**
-     * Step 7: Handle Host Responsibilities
-     */
-    public function handleHostResponsibilities(int $eventId, int $hostId, array $data): array
-    {
-        $event = $this->validateEventAccess($eventId, $hostId);
-        
-        $updateData = [
-            'notes' => $data['notes'],
-            'cancellation_policy' => $data['cancellation_policy'] ?? 'no_refund',
-            'host_responsibilities_accepted' => $data['host_responsibilities_accepted'] ?? false,
-        ];
-
-        // Handle itinerary attachment
-        $itineraryAttached = [];
-        if (isset($data['itinerary_session_id']) && !empty($data['itinerary_session_id'])) {
-            $itineraryAttached = $this->mediaService->attachItineraryToEvent($eventId, $data['itinerary_session_id']);
-        }
-
-        $this->updateEventStep($event, $updateData, 'host_responsibilities');
-        $completedSteps = $this->getCompletedSteps($event);
-
-        return [
-            'event_id' => $eventId,
-            'current_step' => 'host_responsibilities',
-            'next_step' => 'preview',
-            'completed_steps' => $completedSteps,
-            'progress_percentage' => (count($completedSteps) / 8) * 100,
-            'itinerary_attached' => $itineraryAttached,
-            'message' => 'Host responsibilities updated successfully'
-        ];
-    }
-
-    /**
-     * Step 8: Generate Preview
-     */
-    public function generatePreview(int $eventId, int $hostId): array
-    {
-        $event = $this->validateEventAccess($eventId, $hostId);
-        
-        // Validate all required fields are completed
-        $this->validateEventForPreview($event);
-        
-        $previewData = $this->buildPreviewData($event);
-        
-        $updateData = [
-            'preview_generated_at' => now()
-        ];
-
-        $this->updateEventStep($event, $updateData, 'preview');
-        $completedSteps = $this->getCompletedSteps($event);
-
-        return [
-            'event_id' => $eventId,
-            'current_step' => 'preview',
-            'next_step' => 'publish',
-            'completed_steps' => $completedSteps,
-            'progress_percentage' => 100.0,
-            'preview_data' => $previewData,
-            'can_publish' => true,
-            'message' => 'Event preview generated successfully'
-        ];
-    }
-
-    /**
-     * Final Step: Publish Event
+     * Publish event (simplified - no complex validation)
      */
     public function publishEvent(int $eventId, int $hostId): array
     {
         $event = $this->validateEventAccess($eventId, $hostId);
         
-        // if ($event->current_step !== 'preview') {
-        //     throw new \Exception('Event must be previewed before publishing');
-        // }
-
-        // if (!$event->preview_generated_at) {
-        //     throw new \Exception('Please generate preview first');
-        // }
-
-        $publishedEvent = $this->eventRepository->publishEvent($eventId);
-
-          $chatService = app(ChatService::class);
-    $chatService->createEventGroupChat($publishedEvent, $hostId);
-    
-
-        return [
-            'event_id' => $eventId,
-            'status' => 'published',
-            'published_at' => $publishedEvent->published_at,
-            // 'event_url' => url("/events/{$eventId}"),
-            'message' => 'Event published successfully! Your event is now live.'
-        ];
-    }
-
-    /**
-     * Get Event Progress and Data
-     */
-    public function getEventProgress(int $eventId, int $hostId): array
-    {
-        $event = $this->validateEventAccess($eventId, $hostId);
+        if ($event->status === 'published') {
+            throw new \Exception('Event is already published');
+        }
         
-        $completedSteps = $this->getCompletedSteps($event);
-        $stepOrder = ['basic_info', 'venue_location', 'date_time', 'attendees_setup', 
-                     'token_payment', 'event_history', 'host_responsibilities', 'preview'];
-
-        $currentStepIndex = array_search($event->current_step, $stepOrder);
-        $nextStep = $currentStepIndex < count($stepOrder) - 1 ? $stepOrder[$currentStepIndex + 1] : 'publish';
-
-        // Get step data for frontend
-        $stepData = $this->getStepData($event);
-
+        // Simple validation - just check required fields exist
+        $this->validateEventForPublishing($event);
+        
+        // Publish the event
+        $this->eventRepository->update($eventId, [
+            'status' => 'published',
+            'published_at' => now(),
+            'preview_generated_at' => now(),
+        ]);
+        
+        $publishedEvent = $this->eventRepository->findById($eventId);
+        
+        // Load suggested location for response
+        $suggestedLocation = SuggestedLocation::find($publishedEvent->suggested_location_id);
+        
         return [
-            'event_id' => $eventId,
-            'session_id' => $event->session_id,
-            'current_step' => $event->current_step,
-            'next_step' => $nextStep,
-            'completed_steps' => $completedSteps,
-            'progress_percentage' => (count($completedSteps) / count($stepOrder)) * 100,
-            'can_preview' => count($completedSteps) >= 7,
-            'can_publish' => $event->current_step === 'preview' && $event->status === 'draft',
-            'status' => $event->status,
-            'step_data' => $stepData
+            'event_id' => $publishedEvent->id,
+            'status' => 'published',
+            'published_at' => $publishedEvent->published_at->toISOString(),
+            'name' => $publishedEvent->name,
+            'event_date' => $publishedEvent->event_date->toDateString(),
+            'event_time' => $publishedEvent->event_time->format('H:i'),
+            'location' => [
+                'name' => $suggestedLocation->name ?? $publishedEvent->venue_name,
+                'venue_name' => $publishedEvent->venue_name,
+                'city' => $publishedEvent->city,
+                'category' => $suggestedLocation->category ?? null,
+            ],
+            'group_size' => $publishedEvent->min_group_size,
+            'token_cost_per_attendee' => $publishedEvent->token_cost_per_attendee,
+            'age_range' => "{$publishedEvent->min_age}-{$publishedEvent->max_age}",
+            'message' => 'Event published successfully and is now live!'
         ];
     }
 
     /**
-     * Delete Draft Event
+     * Delete draft event
      */
     public function deleteDraftEvent(int $eventId, int $hostId): array
     {
@@ -464,321 +217,111 @@ public function createEventBulk(int $hostId, array $data, ?int $eventId = null):
         if ($event->status !== 'draft') {
             throw new \Exception('Only draft events can be deleted');
         }
-
-        // Delete the event
+        
+        $eventName = $event->name;
         $this->eventRepository->delete($eventId);
-
+        
         return [
-            'message' => 'Draft event deleted successfully'
+            'message' => "Draft event '{$eventName}' deleted successfully"
         ];
     }
 
-    // ========================================
     // PRIVATE HELPER METHODS
-    // ========================================
 
-    private function validateEventAccess(int $eventId, int $hostId): object
+    /**
+     * Auto-calculate age range based on creator's age (±8 years)
+     */
+    private function calculateAgeRange(User $creator, bool $disableRestriction = false): array
     {
-        $event = $this->eventRepository->findByIdAndHost($eventId, $hostId);
-        
-        if (!$event) {
-            throw new \Exception('Event not found or you do not have permission to edit this event');
+        if ($disableRestriction) {
+            // No age restriction - allow all adults
+            return [
+                'min_age' => 18,
+                'max_age' => 100
+            ];
         }
-
-        if ($event->status === 'published') {
-            throw new \Exception('Published events cannot be edited. Please create a new event.');
-        }
-
-        return $event;
-    }
-
-    private function updateEventStep(object $event, array $updateData, string $step): void
-    {
-        $completedSteps = json_decode($event->step_completed_at ?? '{}', true);
-        $completedSteps[$step] = now()->toISOString();
         
-        $updateData['step_completed_at'] = json_encode($completedSteps);
-        $updateData['current_step'] = $step;
-
-        $this->eventRepository->update($event->id, $updateData);
-    }
-
-    private function getCompletedSteps(object $event): array
-    {
-        $stepData = json_decode($event->step_completed_at ?? '{}', true);
-        return array_keys($stepData);
+        $creatorAge = $creator->age ?? 25; // Default to 25 if age not set
+        
+        return [
+            'min_age' => max(18, $creatorAge - 8), // Minimum 18 years old
+            'max_age' => min(100, $creatorAge + 8)  // Maximum 100 years old
+        ];
     }
 
     /**
-     * Process Gender Rules Logic
+     * Auto-determine gender rules based on creator's preferences
      */
-  
-
-/**
- * Process Gender Rules Logic - Updated with required composition value
- */
-// private function processGenderRules(array $data): array
-// {
-//     $groupSize = $data['min_group_size']; // Only min_group_size, max is infinite
-//     $selectedGenders = $data['allowed_genders'] ?? [];
-    
-//     // Check if user has enabled gender rules through UI toggle
-//     $userEnabledGenderRules = $data['gender_rule_enabled'] ?? false;
-    
-//     // If user has not enabled gender rules, return disabled state
-//     if (!$userEnabledGenderRules) {
-//         return [
-//             'gender_rule_enabled' => false,
-//             'gender_composition' => null,
-//             'gender_composition_value' => null,
-//             'allowed_genders' => $selectedGenders,
-//         ];
-//     }
-    
-//     // User has enabled gender rules - composition value is now REQUIRED
-//     $genderCompositionValue = $data['gender_composition_value'] ?? null;
-    
-//     if ($genderCompositionValue === null) {
-//         throw new \Exception('Gender composition value is required when gender rules are enabled.');
-//     }
-    
-//     // Validate composition value against min group size (max is infinite)
-//     if ($genderCompositionValue > $groupSize) {
-//         throw new \Exception('Gender composition value cannot exceed the minimum group size.');
-//     }
-    
-//     if ($genderCompositionValue <= 0) {
-//         throw new \Exception('Gender composition value must be greater than 0.');
-//     }
-    
-//     // Check if special genders are selected
-//     $specialGenders = ['gay', 'trans', 'lesbian', 'bisexual'];
-//     $hasSpecialGenders = !empty(array_intersect($selectedGenders, $specialGenders));
-    
-//     if ($hasSpecialGenders) {
-//         // Cannot enable gender rules for special genders
-//         throw new \Exception('Gender rules cannot be enabled when special genders (gay, trans, lesbian, bisexual) are selected.');
-//     }
-    
-//     // Check if both male and female are selected
-//     $hasMale = in_array('male', $selectedGenders);
-//     $hasFemale = in_array('female', $selectedGenders);
-    
-//     if ($hasMale && $hasFemale) {
-//         // Both genders selected - use the provided composition value
-//         $maleCount = $genderCompositionValue;
-//         $femaleCount = $groupSize - $genderCompositionValue;
+    private function determineGenderRules(User $creator): array
+    {
+        // Default to inclusive settings
+        $defaultGenders = ['male', 'female', 'gay', 'lesbian', 'trans', 'bisexual'];
         
-//         if ($femaleCount < 0) {
-//             throw new \Exception('Invalid gender composition value. It would result in negative female count.');
-//         }
-        
-//         // For infinite max group size, show minimum requirements
-//         return [
-//             'gender_rule_enabled' => true,
-//             'gender_composition' => "Minimum: {$maleCount} males and {$femaleCount} females (additional attendees can be of any selected gender)",
-//             'gender_composition_value' => $genderCompositionValue,
-//             'allowed_genders' => $selectedGenders,
-//         ];
-//     }
-    
-//     // Only one gender selected
-//     if ($hasMale && !$hasFemale) {
-//         return [
-//             'gender_rule_enabled' => true,
-//             'gender_composition' => "Minimum: {$genderCompositionValue} males required (group size is infinite)",
-//             'gender_composition_value' => $genderCompositionValue,
-//             'allowed_genders' => $selectedGenders,
-//         ];
-//     }
-    
-//     if ($hasFemale && !$hasMale) {
-//         return [
-//             'gender_rule_enabled' => true,
-//             'gender_composition' => "Minimum: {$genderCompositionValue} females required (group size is infinite)",
-//             'gender_composition_value' => $genderCompositionValue,
-//             'allowed_genders' => $selectedGenders,
-//         ];
-//     }
-    
-//     // No valid genders selected
-//     throw new \Exception('Please select at least one gender when gender rules are enabled.');
-// }
-
-private function processGenderRules(array $data): array
-{
-    $groupSize = $data['min_group_size'];
-    $selectedGenders = $data['allowed_genders'] ?? [];
-    
-    // Check if user has enabled gender rules
-    $userEnabledGenderRules = $data['gender_rule_enabled'] ?? false;
-    
-    if (!$userEnabledGenderRules) {
+        // You can customize this logic based on creator's preferences
+        // For now, keeping it simple and inclusive
         return [
-            'gender_rule_enabled' => false,
-            'gender_composition' => null,
-            'gender_composition_value' => null,
-            'allowed_genders' => $selectedGenders,
+            'enabled' => false, // Default to no gender restrictions
+            'composition' => null,
+            'value' => null,
+            'allowed_genders' => $defaultGenders
         ];
     }
-    
-    // Check if special genders are selected
-    $specialGenders = ['gay', 'trans', 'lesbian', 'bisexual'];
-    $hasSpecialGenders = !empty(array_intersect($selectedGenders, $specialGenders));
-    
-    if ($hasSpecialGenders) {
-        throw new \Exception('Gender rules cannot be enabled when special genders are selected.');
-    }
-    
-    // Check if both male and female are selected
-    $hasMale = in_array('male', $selectedGenders);
-    $hasFemale = in_array('female', $selectedGenders);
-    
-    if ($hasMale && $hasFemale) {
-        // Auto-calculate equal split
-        if ($groupSize % 2 !== 0) {
-            throw new \Exception('Group size must be even when gender rules are enabled with both male and female selected');
+
+    /**
+     * Validate user has access to event
+     */
+    private function validateEventAccess(int $eventId, int $hostId): Event
+    {
+        $event = $this->eventRepository->findById($eventId);
+        
+        if (!$event) {
+            throw new \Exception('Event not found');
         }
         
-        $genderCompositionValue = $groupSize / 2;
+        if ($event->host_id !== $hostId) {
+            throw new \Exception('You do not have permission to access this event');
+        }
         
-        return [
-            'gender_rule_enabled' => true,
-            'gender_composition' => "Equal split: {$genderCompositionValue} males and {$genderCompositionValue} females",
-            'gender_composition_value' => $genderCompositionValue,
-            'allowed_genders' => $selectedGenders,
-        ];
+        return $event;
     }
-    
-    // Only one gender selected
-    return [
-        'gender_rule_enabled' => false,
-        'gender_composition' => 'Only one gender selected - gender rules disabled',
-        'gender_composition_value' => null,
-        'allowed_genders' => $selectedGenders,
-    ];
-}
 
-    private function validateEventForPreview(object $event): void
+    /**
+     * Validate event is ready for publishing (simplified)
+     */
+    private function validateEventForPublishing(Event $event): void
     {
         $requiredFields = [
-            'name' => 'Event name is required',
-            'description' => 'Event description is required',
-            'venue_type_id' => 'Venue type is required',
-            'venue_category_id' => 'Venue category is required',
-            'event_date' => 'Event date is required',
-            'event_time' => 'Event time is required',
-            'min_group_size' => 'Minimum group size is required',
-            'min_age' => 'Minimum age is required',
-            'max_age' => 'Maximum age is required',
-            'token_cost_per_attendee' => 'Token cost is required'
+            'name' => 'Event name',
+            'description' => 'Event description',
+            'event_date' => 'Event date',
+            'event_time' => 'Event time',
+            'min_group_size' => 'Group size',
+            'suggested_location_id' => 'Event location',
+            'min_age' => 'Minimum age',
+            'max_age' => 'Maximum age',
+            'token_cost_per_attendee' => 'Token cost per attendee',
         ];
 
-        $missingFields = [];
-        foreach ($requiredFields as $field => $message) {
+        foreach ($requiredFields as $field => $label) {
             if (empty($event->$field)) {
-                $missingFields[] = $message;
+                throw new \Exception("Please complete all required fields. Missing: {$label}");
             }
         }
-
-        if (!empty($missingFields)) {
-            throw new \Exception('Missing required fields: ' . implode(', ', $missingFields));
+        
+        // Validate date is in future
+        if ($event->event_date->isPast()) {
+            throw new \Exception('Event date must be in the future');
         }
-
-        // Validate host responsibilities acceptance
-        if (!$event->host_responsibilities_accepted) {
-            throw new \Exception('Host responsibilities must be accepted before publishing');
+        
+        // Validate group size
+        if ($event->min_group_size < 2) {
+            throw new \Exception('Group size must be at least 2 people');
         }
-    }
-
-    private function buildPreviewData(object $event): array
-    {
-        $groupSize = $event->max_group_size ?? $event->min_group_size;
-        $totalCost = $groupSize * $event->token_cost_per_attendee;
-
-        return [
-            'event_summary' => [
-                'name' => $event->name,
-                'date' => $event->event_date->format('M j, Y'),
-                'time' => $event->event_time,
-                'location' => $event->venue_name ?: $event->venue_address,
-                'group_size' => $groupSize,
-                'total_cost' => $totalCost,
-                'cost_per_person' => $event->token_cost_per_attendee
-            ],
-            'venue_details' => [
-                'type' => optional($event->venueType)->name,
-                'category' => optional($event->venueCategory)->name,
-                'name' => $event->venue_name,
-                'address' => $event->venue_address,
-                'city' => $event->city
-            ],
-            'attendee_requirements' => [
-                'group_size_range' => $event->min_group_size . ($event->max_group_size ? '-' . $event->max_group_size : ''),
-                'age_range' => "{$event->min_age}-{$event->max_age}",
-                'gender_rules_enabled' => $event->gender_rule_enabled,
-                'gender_composition' => $event->gender_composition,
-                'allowed_genders' => $event->allowed_genders ?? []
-            ],
-            'policies' => [
-                'cancellation' => $event->cancellation_policy,
-                'host_responsibilities_accepted' => $event->host_responsibilities_accepted
-            ],
-            'media' => [
-                'images_count' => method_exists($event, 'media') ? $event->media()->where('media_type', 'image')->count() : 0,
-                'videos_count' => method_exists($event, 'media') ? $event->media()->where('media_type', 'video')->count() : 0,
-                'has_itinerary' => method_exists($event, 'itineraries') ? $event->itineraries()->exists() : false
-            ]
-        ];
-    }
-
-    private function getStepData(object $event): array
-    {
-        return [
-            'basic_info' => [
-                'name' => $event->name,
-                'description' => $event->description,
-                'tags' => $event->tags
-            ],
-            'venue_location' => [
-                'venue_type_id' => $event->venue_type_id,
-                'venue_category_id' => $event->venue_category_id,
-                'venue_name' => $event->venue_name,
-                'venue_address' => $event->venue_address,
-                'city' => $event->city,
-                'state' => $event->state,
-                'country' => $event->country,
-                'latitude' => $event->latitude,
-                'longitude' => $event->longitude
-            ],
-            'date_time' => [
-                'event_date' => $event->event_date ? $event->event_date->format('Y-m-d') : null,
-                'event_time' => $event->event_time,
-                'timezone' => $event->timezone
-            ],
-            'attendees_setup' => [
-                'min_group_size' => $event->min_group_size,
-                'max_group_size' => $event->max_group_size,
-                'gender_rule_enabled' => $event->gender_rule_enabled,
-                'gender_composition' => $event->gender_composition,
-                'gender_composition_value' => $event->gender_composition_value,
-                'min_age' => $event->min_age,
-                'max_age' => $event->max_age,
-                'allowed_genders' => $event->allowed_genders
-            ],
-            'token_payment' => [
-                'token_cost_per_attendee' => $event->token_cost_per_attendee,
-                'total_tokens_display' => $event->total_tokens_display
-            ],
-            'event_history' => [
-                'past_event_description' => $event->past_event_description,
-                'media_count' => method_exists($event, 'media') ? $event->media()->count() : 0
-            ],
-            'host_responsibilities' => [
-                'cancellation_policy' => $event->cancellation_policy,
-                'host_responsibilities_accepted' => $event->host_responsibilities_accepted,
-                'itinerary_count' => method_exists($event, 'itineraries') ? $event->itineraries()->count() : 0
-            ]
-        ];
+        
+        // Validate suggested location still exists and is active
+        $suggestedLocation = SuggestedLocation::find($event->suggested_location_id);
+        if (!$suggestedLocation || !$suggestedLocation->is_active) {
+            throw new \Exception('Selected location is no longer available');
+        }
     }
 }

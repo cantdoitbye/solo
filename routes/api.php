@@ -53,6 +53,8 @@ Route::prefix('event-data')->group(function () {
 
    Route::prefix('events')->name('events.')->group(function () {
 
+        Route::post('create', [EventCreationController::class, 'createEvent'])->name('create');
+
     // Combined API for simple events (no media)
 Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
     ->name('create-bulk');
@@ -162,6 +164,7 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
 
   Route::prefix('suggested-locations')->name('suggested-locations.')->group(function () {
         Route::get('/', [SuggestedLocationsController::class, 'index'])->name('index');
+          Route::post('/', [SuggestedLocationsController::class, 'store'])->name('store');
         Route::get('/category/{category}', [SuggestedLocationsController::class, 'getByCategory'])->name('by-category');
     });
 

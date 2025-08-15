@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class HomeScreenController extends Controller
 {
-  private HomeScreenService $homeScreenService;
+    private HomeScreenService $homeScreenService;
 
     public function __construct(HomeScreenService $homeScreenService)
     {
@@ -17,7 +17,7 @@ class HomeScreenController extends Controller
     }
 
     /**
-     * Get Home Screen Data with Dynamic Categories
+     * Get Home Screen Data (Simplified)
      */
     public function getHomeScreen(Request $request): JsonResponse
     {
@@ -38,62 +38,14 @@ class HomeScreenController extends Controller
     }
 
     /**
-     * Get Events by Category ID (Dynamic)
-     */
-    public function getEventsByCategoryId(Request $request, int $categoryId): JsonResponse
-    {
-        $request->validate([
-            'limit' => 'nullable|integer|min:1|max:50',
-            'offset' => 'nullable|integer|min:0'
-        ]);
-
-        try {
-            $userId = $request->user()->id;
-            $limit = $request->get('limit', 10);
-            $offset = $request->get('offset', 0);
-            
-            $result = $this->homeScreenService->getEventsByCategoryId(
-                $categoryId, 
-                $userId, 
-                $limit, 
-                $offset
-            );
-
-            return response()->json([
-                'success' => true,
-                'data' => $result
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 400);
-        }
-    }
-
-    /**
-     * Apply Filters to Events (Updated for Categories)
+     * Apply Filters to Events (Simplified - No Venue Categories)
      */
     public function applyFilters(Request $request): JsonResponse
     {
         $request->validate([
             'event_type' => 'nullable|string|in:one-on-one,group',
-            'venue_category_ids' => 'nullable|array',
-            'venue_category_ids.*' => 'integer|exists:venue_categories,id',
-            'select_sex' => 'nullable|array',
-            'select_sex.*' => 'string|in:male,female,gay,lesbian,trans,bisexual',
-            'age_min' => 'nullable|integer|min:15|max:100',
-            'age_max' => 'nullable|integer|min:15|max:100',
-            'area_radius_min' => 'nullable|integer|min:0|max:100',
-            'area_radius_max' => 'nullable|integer|min:0|max:100',
-            'time_start' => 'nullable|date_format:H:i',
-            'time_end' => 'nullable|date_format:H:i',
-            'event_spot' => 'nullable|string|in:indoor,outdoor',
-            'pet_friendly' => 'nullable|boolean',
-            'select_gender' => 'nullable|array',
-            'select_gender.*' => 'string|in:male,female,gay,lesbian,trans,bisexual',
-            'accessibility' => 'nullable|array',
-            'accessibility.*' => 'string|in:wheelchair_accessible,step_free_entrance',
+            'age_min' => 'nullable|integer|min:18|max:100',
+            'age_max' => 'nullable|integer|min:18|max:100',
             'limit' => 'nullable|integer|min:1|max:50',
             'offset' => 'nullable|integer|min:0'
         ]);
@@ -117,7 +69,7 @@ class HomeScreenController extends Controller
     }
 
     /**
-     * Search Events
+     * Search Events (Simplified)
      */
     public function searchEvents(Request $request): JsonResponse
     {
@@ -146,4 +98,5 @@ class HomeScreenController extends Controller
             ], 400);
         }
     }
+
 }

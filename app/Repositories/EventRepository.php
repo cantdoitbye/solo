@@ -172,55 +172,7 @@ class EventRepository implements EventRepositoryInterface
         return $this->getEventsCategoryIdCount($categoryId);
     }
 
-    public function getFilteredEvents(array $filters, int $limit = 10, int $offset = 0): array
-    {
-        $query = Event::published()
-                      ->upcoming()
-                      ->with(['host', 'venueType', 'venueCategory', 'attendees', 'media'])
-                      ->withCount('attendees');
-
-        // Apply filters
-        if (!empty($filters['event_type'])) {
-            if ($filters['event_type'] === 'one-on-one') {
-                $query->where('max_group_size', '<=', 2);
-            } else {
-                $query->where('max_group_size', '>', 2);
-            }
-        }
-
-        // Filter by venue category IDs (Dynamic)
-        if (!empty($filters['venue_category_ids'])) {
-            $query->whereIn('venue_category_id', $filters['venue_category_ids']);
-        }
-
-        if (!empty($filters['select_sex'])) {
-            $query->where(function($q) use ($filters) {
-                foreach ($filters['select_sex'] as $gender) {
-                    $q->orWhereJsonContains('allowed_genders', $gender);
-                }
-            });
-        }
-
-        if (!empty($filters['age_min'])) {
-            $query->where('max_age', '>=', $filters['age_min']);
-        }
-
-        if (!empty($filters['age_max'])) {
-            $query->where('min_age', '<=', $filters['age_max']);
-        }
-
-        if (!empty($filters['event_spot'])) {
-            $query->whereHas('venueType', function($q) use ($filters) {
-                $q->where('name', 'like', '%' . $filters['event_spot'] . '%');
-            });
-        }
-
-        return $query->orderBy('event_date', 'asc')
-                     ->limit($limit)
-                     ->offset($offset)
-                     ->get()
-                     ->toArray();
-    }
+  
 
     public function getFilteredEventsCount(array $filters): int
     {
@@ -264,48 +216,100 @@ class EventRepository implements EventRepositoryInterface
         return $query->count();
     }
 
-    public function getHotEvents(int $limit = 5): array
-    {
-        return Event::published()
-                    ->upcoming()
-                    ->withCount('attendees')
-                    ->orderByDesc('attendees_count')
-                    ->with(['host', 'venueType', 'venueCategory', 'attendees', 'media'])
-                    ->limit($limit)
-                    ->get()
-                    ->toArray();
+ 
+/**
+ * Get hot/trending events with SuggestedLocation and images
+ */
+public function getHotEvents(int $limit = 5): array
+{
+    return Event::published()
+        ->upcoming()
+        ->with([
+            'host:id,name',
+            'suggestedLocation:id,name,description,category',
+            'suggestedLocation.primaryImage:id,suggested_location_id,image_url,is_primary'
+        ])
+        ->withCount('attendees')
+        ->orderByDesc('attendees_count')
+        ->limit($limit)
+        ->get()
+        ->toArray();
+}
+
+/**
+ * Get recent events for a user with SuggestedLocation and images
+ */
+public function getRecentEvents(int $userId, int $limit = 10): array
+{
+    return Event::published()
+        ->upcoming()
+        ->with([
+            'host:id,name',
+            'suggestedLocation:id,name,description,category',
+            'suggestedLocation.primaryImage:id,suggested_location_id,image_url,is_primary'
+        ])
+        ->withCount('attendees')
+        ->orderByDesc('created_at')
+        ->limit($limit)
+        ->get()
+        ->toArray();
+}
+
+/**
+ * Get filtered events with SuggestedLocation and images
+ */
+public function getFilteredEvents(array $filters, int $limit = 10, int $offset = 0): array
+{
+    $query = Event::published()
+        ->upcoming()
+        ->with([
+            'host:id,name',
+            'suggestedLocation:id,name,description,category',
+            'suggestedLocation.primaryImage:id,suggested_location_id,image_url,is_primary'
+        ])
+        ->withCount('attendees');
+
+    // Apply age filters if provided
+    if (isset($filters['age_min'])) {
+        $query->where('min_age', '<=', $filters['age_min']);
+    }
+    
+    if (isset($filters['age_max'])) {
+        $query->where('max_age', '>=', $filters['age_max']);
     }
 
-    public function getRecentEvents(int $userId, int $limit = 10): array
-    {
-        return Event::published()
-                    ->upcoming()
-                    ->where('created_at', '>=', now()->subDays(7))
-                    ->with(['host', 'venueType', 'venueCategory', 'attendees', 'media'])
-                    ->withCount('attendees')
-                    ->orderByDesc('created_at')
-                    ->limit($limit)
-                    ->get()
-                    ->toArray();
-    }
+    return $query->orderByDesc('created_at')
+        ->offset($offset)
+        ->limit($limit)
+        ->get()
+        ->toArray();
+}
 
-    public function searchEventsByQuery(string $query, int $limit = 10, int $offset = 0): array
-    {
-        return Event::published()
-                    ->upcoming()
-                    ->where(function($q) use ($query) {
-                        $q->where('name', 'like', "%{$query}%")
-                          ->orWhere('description', 'like', "%{$query}%")
-                          ->orWhereJsonContains('tags', $query);
-                    })
-                    ->with(['host', 'venueType', 'venueCategory', 'attendees', 'media'])
-                    ->withCount('attendees')
-                    ->orderBy('event_date', 'asc')
-                    ->limit($limit)
-                    ->offset($offset)
-                    ->get()
-                    ->toArray();
-    }
+/**
+ * Search events by query with SuggestedLocation and images
+ */
+public function searchEventsByQuery(string $query, int $limit = 10, int $offset = 0): array
+{
+    return Event::published()
+        ->upcoming()
+        ->with([
+            'host:id,name',
+            'suggestedLocation:id,name,description,category',
+            'suggestedLocation.primaryImage:id,suggested_location_id,image_url,is_primary'
+        ])
+        ->withCount('attendees')
+        ->where(function ($q) use ($query) {
+            $q->where('name', 'like', "%{$query}%")
+              ->orWhere('description', 'like', "%{$query}%")
+              ->orWhere('venue_name', 'like', "%{$query}%")
+              ->orWhere('city', 'like', "%{$query}%");
+        })
+        ->orderByDesc('created_at')
+        ->offset($offset)
+        ->limit($limit)
+        ->get()
+        ->toArray();
+}
 
     public function getSearchCount(string $query): int
     {

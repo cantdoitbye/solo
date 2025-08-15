@@ -15,10 +15,12 @@ class Event extends Model
         'host_id',
         'name',
         'description',
-        'tags',
         'event_date',
         'event_time',
         'timezone',
+        
+        // SuggestedLocation reference + copied location data
+        'suggested_location_id',
         'venue_type_id',
         'venue_category_id',
         'venue_name',
@@ -31,39 +33,45 @@ class Event extends Model
         'country',
         'postal_code',
         'google_place_details',
+        
+        // Simplified group size (min and max are same)
         'min_group_size',
         'max_group_size',
-        'gender_rule_enabled',
-        'gender_composition',
+        
+        // Auto-calculated age restrictions
         'min_age',
         'max_age',
+        'age_restriction_disabled',
+        
+        // Auto-determined gender rules
+        'gender_rule_enabled',
+        'gender_composition',
         'allowed_genders',
-        'token_cost_per_attendee',
+        'gender_composition_value',
+        
+        // Fixed token cost
+        'token_cost_per_attendee', // Always 5.00
         'total_tokens_display',
-        'media_urls',
-        'past_event_description',
+        
+        // Basic policies
         'cancellation_policy',
-        'itinerary_url',
-        'host_responsibilities_accepted',
+        'host_responsibilities_accepted', // Always true
+        
+        // Status
         'status',
-        'event_image',
         'notes',
         'published_at',
         'cancelled_at',
-      
-
-         'current_step',
-    'step_completed_at',
-    'preview_generated_at',
-    'session_id',
-    'gender_composition_value',
+        
+        // Session tracking (simplified)
+        'current_step',
+        'step_completed_at',
+        'preview_generated_at',
+        'session_id',
     ];
 
     protected $casts = [
-        'tags' => 'array',
         'allowed_genders' => 'array',
-        'media_urls' => 'array',
-        'itinerary_url' => 'array',
         'google_place_details' => 'array',
         'step_completed_at' => 'array',
         'event_date' => 'date',
@@ -73,43 +81,34 @@ class Event extends Model
         'preview_generated_at' => 'datetime',
         'gender_rule_enabled' => 'boolean',
         'host_responsibilities_accepted' => 'boolean',
+        'age_restriction_disabled' => 'boolean',
         'token_cost_per_attendee' => 'decimal:2',
         'total_tokens_display' => 'decimal:2',
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
-          'step_completed_at' => 'array',
-    'preview_generated_at' => 'datetime',
-    'gender_composition_value' => 'integer',
-    'notes' => 'json'
+        'gender_composition_value' => 'integer',
+        'notes' => 'json'
     ];
 
-    // Event Creation Steps Constants
-    const STEPS = [
-        'basic_info',
-        'venue_location',
-        'date_time',
-        'attendees_setup',
-        'token_payment',
-        'event_history',
-        'host_responsibilities',
-        'preview'
-    ];
+    // SIMPLIFIED - Only one step
+    const STEPS = ['completed'];
+    const STEP_LABELS = ['completed' => 'Event Creation Complete'];
 
-    const STEP_LABELS = [
-        'basic_info' => 'Basic Information',
-        'venue_location' => 'Venue & Location',
-        'date_time' => 'Date & Time',
-        'attendees_setup' => 'Attendees Setup',
-        'token_payment' => 'Token & Payment',
-        'event_history' => 'Event History',
-        'host_responsibilities' => 'Host Responsibilities',
-        'preview' => 'Preview'
-    ];
+    // FIXED TOKEN COST
+    const FIXED_TOKEN_COST = 5.00; // 5 olos per attendee
+
+    // AUTO AGE RANGE
+    const DEFAULT_AGE_RANGE = 8; // ±8 years from creator's age
 
     // Relationships
     public function host(): BelongsTo
     {
         return $this->belongsTo(User::class, 'host_id');
+    }
+
+    public function suggestedLocation(): BelongsTo
+    {
+        return $this->belongsTo(SuggestedLocation::class, 'suggested_location_id');
     }
 
     public function venueType(): BelongsTo
@@ -125,21 +124,6 @@ class Event extends Model
     public function attendees(): HasMany
     {
         return $this->hasMany(EventAttendee::class);
-    }
-
-    public function confirmedAttendees(): HasMany
-    {
-        return $this->hasMany(EventAttendee::class)->where('status', 'confirmed');
-    }
-
-    public function media(): HasMany
-    {
-        return $this->hasMany(EventMedia::class);
-    }
-
-    public function itineraries(): HasMany
-    {
-        return $this->hasMany(EventItinerary::class);
     }
 
     // Scopes
@@ -158,202 +142,187 @@ class Event extends Model
         return $query->where('event_date', '>=', now()->toDateString());
     }
 
-    public function scopeInProgress($query)
+    public function scopePast($query)
     {
-        return $query->whereIn('current_step', self::STEPS);
+        return $query->where('event_date', '<', now()->toDateString());
     }
 
-    public function scopeReadyForPreview($query)
+    public function scopeByHost($query, int $hostId)
     {
-        return $query->where('current_step', 'host_responsibilities')
-                    ->where('status', 'draft');
+        return $query->where('host_id', $hostId);
     }
 
-    public function scopeReadyForPublish($query)
+    public function scopeInCity($query, string $city)
     {
-        return $query->where('current_step', 'preview')
-                    ->where('status', 'draft')
-                    ->whereNotNull('preview_generated_at');
+        return $query->where('city', 'like', "%{$city}%");
     }
 
-    // Accessors
-    public function getEventDatetimeAttribute()
+    public function scopeInRegion($query, string $state)
     {
-        return $this->event_date->format('Y-m-d') . ' ' . $this->event_time;
+        return $query->where('state', 'like', "%{$state}%");
     }
 
-    public function getAvailableSpotsAttribute()
+    public function scopeBySuggestedLocation($query, int $locationId)
     {
-        $maxSize = $this->max_group_size ?: $this->min_group_size;
-        return max(0, $maxSize - $this->confirmedAttendees()->count());
+        return $query->where('suggested_location_id', $locationId);
     }
 
-    public function getProgressPercentageAttribute()
+    /**
+     * Scope for events visible to a specific user based on age
+     */
+    public function scopeVisibleToUser($query, User $user)
     {
-        $completedSteps = $this->step_completed_at ? array_keys($this->step_completed_at) : [];
-        return (count($completedSteps) / count(self::STEPS)) * 100;
-    }
-
-    public function getCompletedStepsAttribute()
-    {
-        return $this->step_completed_at ? array_keys($this->step_completed_at) : [];
-    }
-
-    public function getNextStepAttribute()
-    {
-        $currentIndex = array_search($this->current_step, self::STEPS);
-        if ($currentIndex === false || $currentIndex >= count(self::STEPS) - 1) {
-            return 'publish';
-        }
-        return self::STEPS[$currentIndex + 1];
-    }
-
-    public function getCurrentStepLabelAttribute()
-    {
-        return self::STEP_LABELS[$this->current_step] ?? 'Unknown Step';
-    }
-
-    public function getCanPreviewAttribute()
-    {
-        $completedSteps = $this->completed_steps;
-        $requiredStepsForPreview = array_slice(self::STEPS, 0, 7); // All except 'preview'
-        return count(array_intersect($requiredStepsForPreview, $completedSteps)) >= 7;
-    }
-
-    public function getCanPublishAttribute()
-    {
-        return $this->current_step === 'preview' && 
-               $this->status === 'draft' && 
-               $this->preview_generated_at !== null;
-    }
-
-    public function getIsCompleteAttribute()
-    {
-        $completedSteps = $this->completed_steps;
-        return count($completedSteps) === count(self::STEPS);
-    }
-
-    // Methods
-    public function hasSpace(): bool
-    {
-        return $this->available_spots > 0;
-    }
-
-    public function isStepCompleted(string $step): bool
-    {
-        return in_array($step, $this->completed_steps);
-    }
-
-    public function markStepCompleted(string $step): void
-    {
-        if (!in_array($step, self::STEPS)) {
-            throw new \InvalidArgumentException("Invalid step: $step");
-        }
-
-        $completedSteps = $this->step_completed_at ?? [];
-        $completedSteps[$step] = now()->toISOString();
+        $userAge = $user->age ?? 25;
         
-        $this->update([
-            'step_completed_at' => $completedSteps,
-            'current_step' => $step
-        ]);
+        return $query->where(function ($q) use ($userAge) {
+            $q->where('age_restriction_disabled', true) // No age restriction
+              ->orWhere(function ($subQ) use ($userAge) {
+                  $subQ->where('min_age', '<=', $userAge)
+                       ->where('max_age', '>=', $userAge);
+              });
+        });
     }
 
-    public function canMoveToStep(string $step): bool
+    // Helper Methods
+
+    /**
+     * Check if event is published
+     */
+    public function isPublished(): bool
     {
-        $stepIndex = array_search($step, self::STEPS);
-        $currentIndex = array_search($this->current_step, self::STEPS);
-        
-        if ($stepIndex === false || $currentIndex === false) {
-            return false;
+        return $this->status === 'published';
+    }
+
+    /**
+     * Check if event is draft
+     */
+    public function isDraft(): bool
+    {
+        return $this->status === 'draft';
+    }
+
+    /**
+     * Check if event is in the past
+     */
+    public function isPast(): bool
+    {
+        return $this->event_date->isPast();
+    }
+
+    /**
+     * Check if event is upcoming
+     */
+    public function isUpcoming(): bool
+    {
+        return $this->event_date->isFuture();
+    }
+
+    /**
+     * Get total cost for the group
+     */
+    public function getTotalCost(): float
+    {
+        return $this->min_group_size * self::FIXED_TOKEN_COST;
+    }
+
+    /**
+     * Get available slots
+     */
+    public function getAvailableSlots(): ?int
+    {
+        if (!$this->max_group_size) {
+            return null;
         }
 
-        // Can only move to next step or stay on current step
-        return $stepIndex <= $currentIndex + 1;
+        $confirmedAttendees = $this->attendees()
+            ->whereIn('status', ['interested', 'confirmed'])
+            ->sum('total_members') ?: $this->attendees()
+            ->whereIn('status', ['interested', 'confirmed'])
+            ->count();
+
+        return max(0, $this->max_group_size - $confirmedAttendees);
     }
 
-    public function getMissingRequiredFields(): array
+    /**
+     * Check if event is full
+     */
+    public function isFull(): bool
     {
-        $missing = [];
-        
-        $requiredFieldsByStep = [
-            'basic_info' => ['name', 'description'],
-            'venue_location' => ['venue_type_id', 'venue_category_id'],
-            'date_time' => ['event_date', 'event_time'],
-            'attendees_setup' => ['min_group_size', 'min_age', 'max_age'],
-            'token_payment' => ['token_cost_per_attendee'],
-            'event_history' => [], // Optional step
-            'host_responsibilities' => ['cancellation_policy', 'host_responsibilities_accepted'],
-            'preview' => [] // Validation happens in service
-        ];
+        $availableSlots = $this->getAvailableSlots();
+        return $availableSlots !== null && $availableSlots <= 0;
+    }
 
-        foreach ($requiredFieldsByStep as $step => $fields) {
-            if ($this->isStepCompleted($step)) {
-                continue;
-            }
-
-            foreach ($fields as $field) {
-                if (empty($this->$field)) {
-                    $missing[$step][] = $field;
-                }
-            }
+    /**
+     * Check if user can see this event (age-based visibility)
+     */
+    public function isVisibleToUser(User $user): bool
+    {
+        if ($this->age_restriction_disabled) {
+            return true; // No age restrictions
         }
-
-        return $missing;
+        
+        $userAge = $user->age ?? 25;
+        return $userAge >= $this->min_age && $userAge <= $this->max_age;
     }
 
-    public function generatePreviewSummary(): array
+    /**
+     * Get age range description
+     */
+    public function getAgeRangeDescription(): string
     {
-        $groupSize = $this->max_group_size ?? $this->min_group_size;
-        $totalCost = $groupSize * $this->token_cost_per_attendee;
+        if ($this->age_restriction_disabled) {
+            return 'All ages welcome';
+        }
+        
+        return "Ages {$this->min_age}-{$this->max_age}";
+    }
 
+    /**
+     * Get location information from SuggestedLocation or fallback to stored data
+     */
+    public function getLocationInfo(): array
+    {
+        $suggestedLocation = $this->suggestedLocation;
+        
         return [
-            'event_summary' => [
-                'name' => $this->name,
-                'date' => $this->event_date->format('M j, Y'),
-                'time' => $this->event_time,
-                'location' => $this->venue_name ?: $this->venue_address,
-                'group_size' => $groupSize,
-                'total_cost' => $totalCost,
-                'cost_per_person' => $this->token_cost_per_attendee
-            ],
-            'venue_details' => [
-                'type' => $this->venueType->name ?? null,
-                'category' => $this->venueCategory->name ?? null,
-                'address' => $this->venue_address,
-                'city' => $this->city
-            ],
-            'attendee_requirements' => [
-                'age_range' => "{$this->min_age}-{$this->max_age}",
-                'gender_rules' => $this->gender_rule_enabled ? $this->gender_composition : 'No restrictions',
-                'allowed_genders' => $this->allowed_genders ?? []
-            ],
-            'policies' => [
-                'cancellation' => $this->cancellation_policy,
-                'host_responsibilities_accepted' => $this->host_responsibilities_accepted
-            ],
-            'media_count' => $this->media()->count(),
-            'has_itinerary' => $this->itineraries()->exists()
+            'suggested_location_id' => $this->suggested_location_id,
+            'name' => $suggestedLocation->name ?? 'Custom Location',
+            'description' => $suggestedLocation->description ?? null,
+            'category' => $suggestedLocation->category ?? null,
+            'venue_name' => $this->venue_name,
+            'venue_address' => $this->venue_address,
+            'city' => $this->city,
+            'state' => $this->state,
+            'country' => $this->country,
+            'image_url' => $suggestedLocation && $suggestedLocation->primaryImage 
+                ? $suggestedLocation->primaryImage->image_url 
+                : ($suggestedLocation->image_url ?? null),
+            'google_maps_url' => $suggestedLocation->google_maps_url ?? null,
         ];
     }
 
-
-   
-
-public function hasChatRoom(): bool
-{
-    return !is_null($this->chatRoom);
-}
-
-public function getChatRoomId(): ?int
-{
-    return $this->chatRoom?->id;
-}
-
-public function menuImages(): HasMany
-{
-    return $this->hasMany(EventMenu::class)->orderBy('sort_order', 'asc');
-}
-
-    
+    /**
+     * Generate simplified event summary
+     */
+    public function getEventSummary(): array
+    {
+        $locationInfo = $this->getLocationInfo();
+        
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'description' => $this->description,
+            'date' => $this->event_date->format('M j, Y'),
+            'time' => $this->event_time->format('g:i A'),
+            'location' => $locationInfo,
+            'group_size' => $this->min_group_size,
+            'cost_per_person' => self::FIXED_TOKEN_COST,
+            'total_cost' => $this->getTotalCost(),
+            'age_range' => $this->getAgeRangeDescription(),
+            'available_slots' => $this->getAvailableSlots(),
+            'is_full' => $this->isFull(),
+            'status' => $this->status,
+            'host_name' => $this->host->name ?? 'Unknown',
+        ];
+    }
 }
