@@ -174,47 +174,30 @@ class EventRepository implements EventRepositoryInterface
 
   
 
-    public function getFilteredEventsCount(array $filters): int
-    {
-        $query = Event::published()->upcoming();
+   public function getFilteredEventsCount(array $filters): int
+{
+    $query = Event::published()->upcoming();
 
-        // Apply same filters as getFilteredEvents
-        if (!empty($filters['event_type'])) {
-            if ($filters['event_type'] === 'one-on-one') {
-                $query->where('max_group_size', '<=', 2);
-            } else {
-                $query->where('max_group_size', '>', 2);
-            }
-        }
-
-        if (!empty($filters['venue_category_ids'])) {
-            $query->whereIn('venue_category_id', $filters['venue_category_ids']);
-        }
-
-        if (!empty($filters['select_sex'])) {
-            $query->where(function($q) use ($filters) {
-                foreach ($filters['select_sex'] as $gender) {
-                    $q->orWhereJsonContains('allowed_genders', $gender);
-                }
-            });
-        }
-
-        if (!empty($filters['age_min'])) {
-            $query->where('max_age', '>=', $filters['age_min']);
-        }
-
-        if (!empty($filters['age_max'])) {
-            $query->where('min_age', '<=', $filters['age_max']);
-        }
-
-        if (!empty($filters['event_spot'])) {
-            $query->whereHas('venueType', function($q) use ($filters) {
-                $q->where('name', 'like', '%' . $filters['event_spot'] . '%');
-            });
-        }
-
-        return $query->count();
+    // Apply date filters (CRITICAL FIX)
+    if (isset($filters['start_date'])) {
+        $query->where('event_date', '>=', $filters['start_date']);
     }
+    
+    if (isset($filters['end_date'])) {
+        $query->where('event_date', '<=', $filters['end_date']);
+    }
+
+    // Apply age filters
+    if (!empty($filters['age_min'])) {
+        $query->where('max_age', '>=', $filters['age_min']);
+    }
+
+    if (!empty($filters['age_max'])) {
+        $query->where('min_age', '<=', $filters['age_max']);
+    }
+
+    return $query->count();
+}
 
  
 /**
@@ -269,16 +252,49 @@ public function getFilteredEvents(array $filters, int $limit = 10, int $offset =
         ])
         ->withCount('attendees');
 
+    // Apply date filters (NEW) - This is the critical fix
+    if (isset($filters['start_date'])) {
+        $query->where('event_date', '>=', $filters['start_date']);
+    }
+    
+    if (isset($filters['end_date'])) {
+        $query->where('event_date', '<=', $filters['end_date']);
+    }
+
+    // Apply event type filters
+    if (!empty($filters['event_type'])) {
+        if ($filters['event_type'] === 'one-on-one') {
+            $query->where('max_group_size', '<=', 2);
+        } else {
+            $query->where('max_group_size', '>', 2);
+        }
+    }
+
     // Apply age filters if provided
     if (isset($filters['age_min'])) {
-        $query->where('min_age', '<=', $filters['age_min']);
+        $query->where('max_age', '>=', $filters['age_min']);
     }
     
     if (isset($filters['age_max'])) {
-        $query->where('max_age', '>=', $filters['age_max']);
+        $query->where('min_age', '<=', $filters['age_max']);
     }
 
-    return $query->orderByDesc('created_at')
+    // Apply venue category filters if provided
+    if (!empty($filters['venue_category_ids'])) {
+        $query->whereIn('venue_category_id', $filters['venue_category_ids']);
+    }
+
+    // Apply gender filters if provided
+    if (!empty($filters['select_sex'])) {
+        $query->where(function($q) use ($filters) {
+            foreach ($filters['select_sex'] as $gender) {
+                $q->orWhereJsonContains('allowed_genders', $gender);
+            }
+        });
+    }
+
+    return $query->orderBy('event_date', 'asc')
+        ->orderBy('event_time', 'asc')
         ->offset($offset)
         ->limit($limit)
         ->get()

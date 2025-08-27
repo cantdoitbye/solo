@@ -9,9 +9,11 @@ use App\Http\Controllers\Api\V1\ChatController;
 use App\Http\Controllers\Api\V1\EventController as V1EventController;
 use App\Http\Controllers\Api\V1\EventCreationController;
 use App\Http\Controllers\Api\V1\EventDataController as V1EventDataController;
+use App\Http\Controllers\Api\V1\EventHistoryController;
 use App\Http\Controllers\Api\V1\EventJoinController;
 use App\Http\Controllers\Api\V1\EventMediaController;
 use App\Http\Controllers\Api\V1\HomeScreenController;
+use App\Http\Controllers\Api\V1\MyEventsController;
 use App\Http\Controllers\Api\V1\OneOnOneDateController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\SuggestedLocationsController;
@@ -182,6 +184,9 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
         Route::post('action', [SwipeController::class, 'swipe']);
         Route::get('profile/{profileId}', [SwipeController::class, 'getProfileDetails']);
     });
-    
+
+    Route::get('/events/history', [EventHistoryController::class, 'getEventHistory']);
+    Route::get('/my-events', [MyEventsController::class, 'getMyEvents']);
+
     
 });

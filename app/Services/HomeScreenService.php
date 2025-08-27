@@ -22,18 +22,24 @@ class HomeScreenService
     /**
      * Get Home Screen Data (Simplified for Index Page)
      */
-    public function getHomeScreenData(int $userId): array
+   public function getHomeScreenData(int $userId, array $filters = []): array
     {
-        // Get hot/trending events
-        $hotEvents = $this->getHotInDemandEvents($userId);
+        $limit = $filters['limit'] ?? 20;
+        $offset = $filters['offset'] ?? 0;
         
-        // Get recent events
-        $recentEvents = $this->getRecentEvents($userId);
-
+        // Prepare date filters based on the filter type
+        $dateFilters = $this->prepareDateFilters($filters);
+        
+        // Get events with date filtering
+        $events = $this->eventRepository->getFilteredEvents($dateFilters, $limit, $offset);
+        $totalCount = $this->eventRepository->getFilteredEventsCount($dateFilters);
+        
         return [
-            'hot_in_demand' => $hotEvents,
-            'recent_events' => $recentEvents,
-            'total_events_count' => $this->getTotalEventsCount()
+            'events' => $this->formatEventsForMobile($events, $userId),
+            'total_count' => $totalCount,
+            'has_more' => ($offset + $limit) < $totalCount,
+            'date_filter' => $filters['date_filter'] ?? 'today',
+            'applied_date_range' => $this->getAppliedDateRangeText($filters)
         ];
     }
 
@@ -103,6 +109,74 @@ class HomeScreenService
     // PRIVATE HELPER METHODS
     // ========================================
 
+    private function prepareDateFilters(array $filters): array
+    {
+        $dateFilter = $filters['date_filter'] ?? 'today';
+        $dateFilters = [];
+        
+        switch ($dateFilter) {
+            case 'today':
+                $dateFilters['start_date'] = Carbon::today()->format('Y-m-d');
+                $dateFilters['end_date'] = Carbon::today()->format('Y-m-d');
+                break;
+                
+            case 'tomorrow':
+                $dateFilters['start_date'] = Carbon::tomorrow()->format('Y-m-d');
+                $dateFilters['end_date'] = Carbon::tomorrow()->format('Y-m-d');
+                break;
+                
+            case 'custom':
+                if (!empty($filters['date'])) {
+                    // Single custom date
+                    $dateFilters['start_date'] = $filters['date'];
+                    $dateFilters['end_date'] = $filters['date'];
+                } elseif (!empty($filters['start_date'])) {
+                    // Date range
+                    $dateFilters['start_date'] = $filters['start_date'];
+                    $dateFilters['end_date'] = $filters['end_date'] ?? $filters['start_date'];
+                }
+                break;
+                
+            default:
+                // Default to today if invalid filter
+                $dateFilters['start_date'] = Carbon::today()->format('Y-m-d');
+                $dateFilters['end_date'] = Carbon::today()->format('Y-m-d');
+                break;
+        }
+        
+        return $dateFilters;
+    }
+
+    /**
+     * Get applied date range text for display (NEW)
+     */
+    private function getAppliedDateRangeText(array $filters): string
+    {
+        $dateFilter = $filters['date_filter'] ?? 'today';
+        
+        switch ($dateFilter) {
+            case 'today':
+                return 'Today (' . Carbon::today()->format('M j, Y') . ')';
+                
+            case 'tomorrow':
+                return 'Tomorrow (' . Carbon::tomorrow()->format('M j, Y') . ')';
+                
+            case 'custom':
+                if (!empty($filters['date'])) {
+                    return Carbon::parse($filters['date'])->format('M j, Y');
+                } elseif (!empty($filters['start_date'])) {
+                    $startDate = Carbon::parse($filters['start_date'])->format('M j, Y');
+                    if (!empty($filters['end_date']) && $filters['end_date'] !== $filters['start_date']) {
+                        $endDate = Carbon::parse($filters['end_date'])->format('M j, Y');
+                        return "{$startDate} - {$endDate}";
+                    }
+                    return $startDate;
+                }
+                break;
+        }
+        
+        return 'Today';
+    }
     private function getHotInDemandEvents(int $userId = null): array
     {
         $events = $this->eventRepository->getHotEvents(5);
@@ -204,7 +278,7 @@ class HomeScreenService
     /**
      * SIMPLIFIED: Applied filters (removed venue categories)
      */
-    private function formatAppliedFilters(array $filters): array
+   private function formatAppliedFilters(array $filters): array
     {
         $applied = [];
         
