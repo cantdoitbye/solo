@@ -352,4 +352,32 @@ public function searchEventsByQuery(string $query, int $limit = 10, int $offset 
     {
         return Event::published()->upcoming()->count();
     }
+
+    /**
+ * Get random events with images for banners
+ */
+public function getRandomEventsWithImages(array $filters = [], int $limit = 5): array
+{
+    $query = Event::published()
+        // ->upcoming()
+        ->whereHas('suggestedLocation.primaryImage') // Only events with images
+        ->with([
+            'suggestedLocation:id,name,description,category',
+            'suggestedLocation.primaryImage:id,suggested_location_id,image_url,is_primary'
+        ]);
+
+    // Apply date filters if provided
+    if (isset($filters['start_date'])) {
+        $query->where('event_date', '>=', $filters['start_date']);
+    }
+    
+    if (isset($filters['end_date'])) {
+        $query->where('event_date', '<=', $filters['end_date']);
+    }
+
+    return $query->inRandomOrder()
+        ->limit($limit)
+        ->get()
+        ->toArray();
+}
 }

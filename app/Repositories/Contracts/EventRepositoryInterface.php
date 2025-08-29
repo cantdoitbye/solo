@@ -91,4 +91,8 @@ interface EventRepositoryInterface
      * Get total count of published events
      */
     public function getTotalPublishedEventsCount(): int;
+
+
+    public function getRandomEventsWithImages(array $filters = [], int $limit = 5): array;
+
 }

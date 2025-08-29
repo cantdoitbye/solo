@@ -33,8 +33,10 @@ class HomeScreenService
         // Get events with date filtering
         $events = $this->eventRepository->getFilteredEvents($dateFilters, $limit, $offset);
         $totalCount = $this->eventRepository->getFilteredEventsCount($dateFilters);
-        
+                $banners = $this->getBannerImages($dateFilters);
+
         return [
+            'banners' => $banners,
             'events' => $this->formatEventsForMobile($events, $userId),
             'total_count' => $totalCount,
             'has_more' => ($offset + $limit) < $totalCount,
@@ -108,6 +110,44 @@ class HomeScreenService
     // ========================================
     // PRIVATE HELPER METHODS
     // ========================================
+
+   private function getBannerImages(array $dateFilters): array
+    {
+        // Get all image files from public/locationImages/ folder
+        $locationImagesPath = public_path('locationImages');
+        $banners = [];
+        
+        if (is_dir($locationImagesPath)) {
+            // Get all image files from the directory
+            $imageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+            $allImages = [];
+            
+            foreach (scandir($locationImagesPath) as $file) {
+                $fileExtension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+                if (in_array($fileExtension, $imageExtensions)) {
+                    $allImages[] = $file;
+                }
+            }
+            
+            if (!empty($allImages)) {
+                // Randomly select 2-3 images
+                $numberOfImages = rand(2, min(3, count($allImages)));
+                $selectedImages = array_rand($allImages, $numberOfImages);
+                
+                // If only one image is selected, make it an array
+                if (!is_array($selectedImages)) {
+                    $selectedImages = [$selectedImages];
+                }
+                
+                foreach ($selectedImages as $index) {
+                    $banners[] = ('locationImages/' . $allImages[$index]);
+                }
+            }
+        }
+        
+        // Fallback to empty array if no images found
+        return $banners;
+    }
 
     private function prepareDateFilters(array $filters): array
     {
