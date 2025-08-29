@@ -113,8 +113,7 @@ class HomeScreenService
 
    private function getBannerImages(array $dateFilters): array
     {
-        // Get all image files from public/locationImages/ folder
-        $locationImagesPath = public_path('locationImages');
+        $locationImagesPath = public_path('locationimages');
         $banners = [];
         
         if (is_dir($locationImagesPath)) {
@@ -140,7 +139,7 @@ class HomeScreenService
                 }
                 
                 foreach ($selectedImages as $index) {
-                    $banners[] = ('locationImages/' . $allImages[$index]);
+                    $banners[] = ('locationimages/' . $allImages[$index]);
                 }
             }
         }
