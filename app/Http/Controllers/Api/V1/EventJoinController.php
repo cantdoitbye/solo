@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\EventAttendee;
+use App\Models\EventReview;
 use App\Services\EventJoinService;
 use App\Services\OlosService;
 use Illuminate\Http\JsonResponse;
@@ -80,6 +81,10 @@ class EventJoinController extends Controller
         if ($isGenderBalanced) {
             $genderSlots = $this->getGenderSlots($event, $currentTotalAttendees);
         }
+
+           $existingReview = EventReview::where('event_id', $eventId)
+                ->where('user_id', $userId)
+                ->first();
 
         return response()->json([
             'success' => true,
@@ -156,6 +161,7 @@ class EventJoinController extends Controller
                     'can_join' => $isJoinable && !$userAttendance,
                     'is_host' => $event->host_id === $userId,
                     'already_joined' => !!$userAttendance,
+                    'is_reviewed' => $existingReview? true : false,
                     'attendance_status' => $userAttendance?->status,
                     'joined_members_count' => $userAttendance?->total_members ?? 0,
                     'olos_balance' => $userOlosBalance,
