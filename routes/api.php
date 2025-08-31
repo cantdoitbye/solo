@@ -192,16 +192,18 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
 
     Route::prefix('message-board')->name('message-board.')->group(function () {
     
-    // Posts
-    Route::get('posts', [MessageBoardController::class, 'getPosts'])->name('posts.index');
-    Route::post('posts/create', [MessageBoardController::class, 'createPost'])->name('posts.create');
-    Route::get('posts/{postId}', [MessageBoardController::class, 'getPost'])->name('posts.show');
-    Route::put('posts/{postId}', [MessageBoardController::class, 'updatePost'])->name('posts.update');
+            Route::put('posts/{postId}', [MessageBoardController::class, 'updatePost'])->name('posts.update');
     Route::delete('posts/{postId}', [MessageBoardController::class, 'deletePost'])->name('posts.delete');
     
     // Replies
     Route::post('posts/{postId}/replies', [MessageBoardController::class, 'createReply'])->name('replies.create');
     
+       Route::get('posts/{postId}', [MessageBoardController::class, 'getPost'])->name('posts.show');
+
+    // Posts
+    Route::get('posts', [MessageBoardController::class, 'getPosts'])->name('posts.index');
+    Route::post('posts/create', [MessageBoardController::class, 'createPost'])->name('posts.create');
+ 
     // Likes
     Route::post('likes', [MessageBoardController::class, 'toggleLike'])->name('likes.toggle');
     
