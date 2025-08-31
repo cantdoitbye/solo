@@ -194,7 +194,7 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
     
     // Posts
     Route::get('posts', [MessageBoardController::class, 'getPosts'])->name('posts.index');
-    Route::post('posts', [MessageBoardController::class, 'createPost'])->name('posts.create');
+    Route::post('posts/create', [MessageBoardController::class, 'createPost'])->name('posts.create');
     Route::get('posts/{postId}', [MessageBoardController::class, 'getPost'])->name('posts.show');
     Route::put('posts/{postId}', [MessageBoardController::class, 'updatePost'])->name('posts.update');
     Route::delete('posts/{postId}', [MessageBoardController::class, 'deletePost'])->name('posts.delete');
