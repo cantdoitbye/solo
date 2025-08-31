@@ -201,12 +201,13 @@ class MessageBoardController extends Controller
         if ($request->parent_reply_id) {
             $parentReply = MessageBoardReply::where('id', $request->parent_reply_id)
                                           ->where('post_id', $postId)
+                                          ->where('parent_reply_id', '!=', null)
                                           ->active()
                                           ->first();
-            if (!$parentReply) {
+            if ($parentReply) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Parent reply not found or invalid'
+                    'message' => 'Can not reply to this reply'
                 ], 404);
             }
         }
