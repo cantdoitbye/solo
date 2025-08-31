@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\EventHistoryController;
 use App\Http\Controllers\Api\V1\EventJoinController;
 use App\Http\Controllers\Api\V1\EventMediaController;
 use App\Http\Controllers\Api\V1\HomeScreenController;
+use App\Http\Controllers\Api\V1\MessageBoardController;
 use App\Http\Controllers\Api\V1\MyEventsController;
 use App\Http\Controllers\Api\V1\OneOnOneDateController;
 use App\Http\Controllers\Api\V1\ProfileController;
@@ -187,6 +188,26 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
 
     Route::get('/events/history', [EventHistoryController::class, 'getEventHistory']);
     Route::get('/my-events', [MyEventsController::class, 'getMyEvents']);
+
+
+    Route::prefix('message-board')->name('message-board.')->group(function () {
+    
+    // Posts
+    Route::get('posts', [MessageBoardController::class, 'getPosts'])->name('posts.index');
+    Route::post('posts', [MessageBoardController::class, 'createPost'])->name('posts.create');
+    Route::get('posts/{postId}', [MessageBoardController::class, 'getPost'])->name('posts.show');
+    Route::put('posts/{postId}', [MessageBoardController::class, 'updatePost'])->name('posts.update');
+    Route::delete('posts/{postId}', [MessageBoardController::class, 'deletePost'])->name('posts.delete');
+    
+    // Replies
+    Route::post('posts/{postId}/replies', [MessageBoardController::class, 'createReply'])->name('replies.create');
+    
+    // Likes
+    Route::post('likes', [MessageBoardController::class, 'toggleLike'])->name('likes.toggle');
+    
+    // Tags
+    Route::get('tags', [MessageBoardController::class, 'getTags'])->name('tags.index');
+});
 
     
 });
