@@ -192,7 +192,6 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
 
 Route::prefix('message-board')->name('message-board.')->group(function () {
     
-    // Posts - General routes first (no parameters)
     Route::get('posts', [MessageBoardController::class, 'getPosts'])->name('posts.index');
     Route::post('posts', [MessageBoardController::class, 'createPost'])->name('posts.create');
     
@@ -210,6 +209,11 @@ Route::prefix('message-board')->name('message-board.')->group(function () {
     // Likes - General routes
     Route::post('likes', [MessageBoardController::class, 'toggleLike'])->name('likes.toggle');
     
+});
+
+
+Route::get('test-message-board', function () {
+    return response()->json(['message' => 'Message board route working']);
 });
 
     
