@@ -237,4 +237,28 @@ public function isAdminOfChatRoom(ChatRoom $chatRoom): bool
     {
         return $query->where('onboarding_completed', true);
     }
+
+    /**
+ * Get all reviews submitted by this user
+ */
+public function eventReviews(): HasMany
+{
+    return $this->hasMany(EventReview::class);
+}
+
+/**
+ * Check if user has reviewed a specific event
+ */
+public function hasReviewedEvent(int $eventId): bool
+{
+    return $this->eventReviews()->where('event_id', $eventId)->exists();
+}
+
+/**
+ * Get user's review for a specific event
+ */
+public function getEventReview(int $eventId): ?EventReview
+{
+    return $this->eventReviews()->where('event_id', $eventId)->first();
+}
 }

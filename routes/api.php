@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\EventDataController as V1EventDataController;
 use App\Http\Controllers\Api\V1\EventHistoryController;
 use App\Http\Controllers\Api\V1\EventJoinController;
 use App\Http\Controllers\Api\V1\EventMediaController;
+use App\Http\Controllers\Api\V1\EventReviewController;
 use App\Http\Controllers\Api\V1\HomeScreenController;
 use App\Http\Controllers\Api\V1\MessageBoardController;
 use App\Http\Controllers\Api\V1\MyEventsController;
@@ -209,6 +210,24 @@ Route::prefix('message-board')->name('message-board.')->group(function () {
     // Likes - General routes
     Route::post('likes', [MessageBoardController::class, 'toggleLike'])->name('likes.toggle');
     
+});
+
+Route::middleware(['auth:sanctum'])->group(function () {
+    
+    // Submit a new review for an event
+    Route::post('/events/{eventId}/reviews', [EventReviewController::class, 'submitReview']);
+    
+    // Get all reviews for a specific event (public - can be accessed by anyone)
+    Route::get('/events/{eventId}/reviews', [EventReviewController::class, 'getEventReviews']);
+    
+    // Get user's own review for a specific event
+    Route::get('/events/{eventId}/my-review', [EventReviewController::class, 'getMyReview']);
+    
+    // Update user's review for an event
+    Route::put('/events/{eventId}/reviews', [EventReviewController::class, 'updateReview']);
+    
+    // Delete user's review for an event
+    Route::delete('/events/{eventId}/reviews', [EventReviewController::class, 'deleteReview']);
 });
 
 

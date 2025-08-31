@@ -278,6 +278,39 @@ class Event extends Model
     }
 
     /**
+ * Get all reviews for this event
+ */
+public function reviews(): HasMany
+{
+    return $this->hasMany(EventReview::class);
+}
+
+/**
+ * Get average rating for this event
+ */
+public function getAverageRatingAttribute(): float
+{
+    return (float) $this->reviews()->avg('rating') ?: 0;
+}
+
+/**
+ * Get total review count for this event
+ */
+public function getTotalReviewsAttribute(): int
+{
+    return $this->reviews()->count();
+}
+
+/**
+ * Check if this event can be reviewed (has passed)
+ */
+public function canBeReviewed(): bool
+{
+    $eventDateTime = $this->event_date->format('Y-m-d') . ' ' . $this->event_time;
+    return now()->gt($eventDateTime);
+}
+
+    /**
      * Get location information from SuggestedLocation or fallback to stored data
      */
     public function getLocationInfo(): array
