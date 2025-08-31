@@ -37,9 +37,9 @@ class MessageBoardController extends Controller
         $userId = $request->user()->id;
 
         $query = MessageBoardPost::with([
-            'user:id,phone_number', // Adjust based on your User model fields
+            'user:id,name,phone_number', // Adjust based on your User model fields
             'replies' => function ($q) {
-                $q->with('user:id,phone_number')->limit(3); // Show first 3 replies
+                $q->with('user:id,name,phone_number')->limit(3); // Show first 3 replies
             }
         ])
         ->active()
@@ -114,7 +114,7 @@ class MessageBoardController extends Controller
             'last_activity_at' => now()
         ]);
 
-        $post->load('user:id,phone_number');
+        $post->load('user:id,name,phone_number');
 
         return response()->json([
             'success' => true,
@@ -131,10 +131,10 @@ class MessageBoardController extends Controller
         $userId = $request->user()->id;
 
         $post = MessageBoardPost::with([
-            'user:id,phone_number',
+            'user:id,name,phone_number',
             'directReplies' => function ($query) {
                 $query->with([
-                    'user:id,phone_number',
+                    'user:id,name,phone_number',
                     'childReplies' => function ($q) {
                         $q->with('user:id,phone_number');
                     }
@@ -218,7 +218,7 @@ class MessageBoardController extends Controller
             'content' => $request->content
         ]);
 
-        $reply->load('user:id,phone_number');
+        $reply->load('user:id,name,phone_number');
 
         return response()->json([
             'success' => true,
@@ -346,7 +346,7 @@ class MessageBoardController extends Controller
         }
 
         $post->update($request->only(['title', 'content', 'tags']));
-        $post->load('user:id,phone_number');
+        $post->load('user:id,name,phone_number');
 
         return response()->json([
             'success' => true,
