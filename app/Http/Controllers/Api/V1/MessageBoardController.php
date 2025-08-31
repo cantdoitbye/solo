@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/Api/V1/MessageBoardController.php
 
 namespace App\Http\Controllers\Api\V1;
 
@@ -87,8 +86,12 @@ class MessageBoardController extends Controller
     /**
      * Create a new post
      */
-    public function createPost(Request $request): JsonResponse
+    public function createPost(Request $request)
     {
+
+        return $request->all();
+
+
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'content' => 'required|string|max:2000',
