@@ -86,12 +86,9 @@ class MessageBoardController extends Controller
     /**
      * Create a new post
      */
-    public function createPost(Request $request)
+    public function createPost(Request $request): JsonResponse
     {
-
-        return $request->all();
-
-
+        
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'content' => 'required|string|max:2000',
