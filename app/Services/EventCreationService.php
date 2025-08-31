@@ -183,11 +183,18 @@ class EventCreationService
         $this->validateEventForPublishing($event);
         
         // Publish the event - just update status
-        $this->eventRepository->update($eventId, [
+        $publishedEvent = $this->eventRepository->update($eventId, [
             'status' => 'published',
             'published_at' => now(),
             'preview_generated_at' => now(),
         ]);
+
+          $chatService = app(ChatService::class);
+    $chatService->createEventGroupChat($publishedEvent, $hostId);
+    
+
+
+
         
         return [
             'event_id' => $eventId,
