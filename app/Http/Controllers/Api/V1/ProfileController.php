@@ -32,6 +32,25 @@ class ProfileController extends Controller
         }
     }
 
+      public function getProfile2(Request $request): JsonResponse
+    {
+        try {
+            $userId = $request->user()->id;
+            $profile = $this->profileService->getUserProfile2($userId);
+
+            return response()->json([
+                'success' => true,
+                'data' => $profile,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'api_version' => 'v1'
+            ], 400);
+        }
+    }
+
     public function logout(Request $request): JsonResponse
     {
         try {

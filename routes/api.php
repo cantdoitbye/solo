@@ -43,6 +43,7 @@ Route::middleware(['auth:sanctum', 'api.auth'])->group(function () {
      Route::get('profile', [ProfileController::class, 'getProfile']);
        Route::put('profile', [ProfileController::class, 'updateProfile']);
     Route::put('profile/location', [ProfileController::class, 'updateLocation']); // ADD THIS LINE
+     Route::get('profile2', [ProfileController::class, 'getProfile2']);
 
      Route::get('profile/stats', [ProfileController::class, 'getProfileStats']);
     

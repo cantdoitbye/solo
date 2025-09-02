@@ -121,6 +121,37 @@ class ProfileService
         ];
     }
 
+
+      public function getUserProfile2(int $userId): array
+    {
+        $user = $this->userRepository->findById($userId);
+        
+        if (!$user) {
+            throw new \Exception('User not found');
+        }
+
+     
+
+      
+
+      
+
+        return [
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'gender' => $user->gender,
+                'age' => $user->age ?? null,
+
+             
+            ]
+          
+         
+        
+         
+        ];
+    }
+
     public function logoutUser(int $userId): array
     {
         $user = $this->userRepository->findById($userId);
