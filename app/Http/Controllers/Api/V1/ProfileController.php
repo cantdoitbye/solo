@@ -120,6 +120,8 @@ class ProfileController extends Controller
             ], 400);
         }
     }
+
+    
 public function updateProfile(Request $request): JsonResponse
 {
     // Add logging to see what we're receiving
