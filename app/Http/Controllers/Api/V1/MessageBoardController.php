@@ -114,7 +114,7 @@ class MessageBoardController extends Controller
             'last_activity_at' => now()
         ]);
 
-        $post->load('user:id,name,phone_number');
+        $post->load('user:id,name,phone_number,profile_photo');
 
         return response()->json([
             'success' => true,
@@ -219,7 +219,7 @@ class MessageBoardController extends Controller
             'content' => $request->content
         ]);
 
-        $reply->load('user:id,name,phone_number');
+        $reply->load('user:id,name,phone_number,profile_photo');
 
         return response()->json([
             'success' => true,
@@ -347,7 +347,7 @@ class MessageBoardController extends Controller
         }
 
         $post->update($request->only(['title', 'content', 'tags']));
-        $post->load('user:id,name,phone_number');
+        $post->load('user:id,name,phone_number,profile_photo');
 
         return response()->json([
             'success' => true,

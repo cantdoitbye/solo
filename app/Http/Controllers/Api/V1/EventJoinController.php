@@ -35,7 +35,7 @@ class EventJoinController extends Controller
         
         // Get event with necessary relationships (UPDATED for new structure)
         $event = Event::with([
-            'host:id,name,phone_number', 
+            'host:id,name,phone_number,profile_photo', 
             'suggestedLocation:id,name,description,category,google_maps_url',
             'suggestedLocation.primaryImage:id,suggested_location_id,image_url,is_primary',
             'attendees' => function ($query) {
