@@ -136,7 +136,7 @@ class MessageBoardController extends Controller
                 $query->with([
                     'user:id,name,phone_number,profile_photo',
                     'childReplies' => function ($q) {
-                        $q->with('user:id,name,phone_number,profile_photp');
+                        $q->with('user:id,name,phone_number,profile_photo');
                     }
                 ]);
             }
