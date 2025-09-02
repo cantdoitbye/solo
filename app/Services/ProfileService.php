@@ -142,6 +142,7 @@ class ProfileService
                 'name' => $user->name,
                 'gender' => $user->gender,
                 'age' => $user->age ?? null,
+                'olos_balance' => $user->getCurrentOlosBalance()
 
              
             ]
