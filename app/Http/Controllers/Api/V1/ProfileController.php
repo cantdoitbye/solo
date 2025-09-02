@@ -121,7 +121,7 @@ class ProfileController extends Controller
         }
     }
 
-    
+
 public function updateProfile(Request $request): JsonResponse
 {
     // Add logging to see what we're receiving
@@ -134,7 +134,7 @@ public function updateProfile(Request $request): JsonResponse
     $request->validate([
         'name' => 'sometimes|string|max:255',
         'age' => 'sometimes|integer|min:18|max:100',
-        'gender' => 'sometimes|in:male,female,non_binary,other',
+        'gender' => 'sometimes|in:male,female,other',
         'bio' => 'sometimes|string|max:500',
         'profile_photo' => 'sometimes|file|mimes:jpeg,jpg,png,webp|max:5120', // 5MB max
     ]);
