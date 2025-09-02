@@ -44,47 +44,47 @@ class AccountSettingsController extends Controller
     /**
      * Update account settings (single API for all settings)
      */
-    // public function updateAccountSettings(Request $request): JsonResponse
-    // {
+    public function updateAccountSettings(Request $request): JsonResponse
+    {
     
-    //     $request->validate([
-    //         'two_factor_enabled' => 'sometimes|boolean',
-    //         'push_notifications_enabled' => 'sometimes|boolean',
-    //         'sound_alerts_enabled' => 'sometimes|boolean',
-    //         'selected_theme' => ['sometimes', 'string'],
-    //         'default_language' => ['sometimes', 'string'],
-    //     ]);
+        $request->validate([
+            'two_factor_enabled' => 'sometimes|boolean',
+            'push_notifications_enabled' => 'sometimes|boolean',
+            'sound_alerts_enabled' => 'sometimes|boolean',
+            'selected_theme' => ['sometimes', 'string'],
+            'default_language' => ['sometimes', 'string'],
+        ]);
 
-    //     try {
-    //         $userId = Auth::id();
-    //         $result = $this->accountSettingsService->updateAccountSettings(
-    //             $userId, 
-    //             $request->only([
-    //                 'two_factor_enabled',
-    //                 'push_notifications_enabled',
-    //                 'sound_alerts_enabled',
-    //                 'selected_theme',
-    //                 'default_language'
-    //             ])
-    //         );
+        try {
+            $userId = Auth::id();
+            $result = $this->accountSettingsService->updateAccountSettings(
+                $userId, 
+                $request->only([
+                    'two_factor_enabled',
+                    'push_notifications_enabled',
+                    'sound_alerts_enabled',
+                    'selected_theme',
+                    'default_language'
+                ])
+            );
 
-    //         return response()->json([
-    //             'success' => true,
-    //             'data' => $result
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => $e->getMessage()
-    //         ], 400);
-    //     }
-    // }
+            return response()->json([
+                'success' => true,
+                'data' => $result
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
 
 
     /**
      * Update account settings with fallback to raw DB queries
      */
-    public function updateAccountSettings(int $userId, array $settings): array
+    public function updateAccountSettingsNew(int $userId, array $settings): array
     {
         // Log incoming request for debugging
         Log::info('Account Settings Update Request', [

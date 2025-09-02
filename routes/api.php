@@ -240,7 +240,7 @@ Route::prefix('account-settings')->name('account-settings.')->middleware('auth:s
         ->name('index');
     
     // Update account settings (single API for all settings)
-    Route::put('/', [AccountSettingsController::class, 'updateAccountSettings'])
+    Route::put('/update', [AccountSettingsController::class, 'updateAccountSettings'])
         ->name('update');
     
     // Security related routes
