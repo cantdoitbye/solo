@@ -37,7 +37,7 @@ class MessageBoardController extends Controller
         $userId = $request->user()->id;
 
         $query = MessageBoardPost::with([
-            'user:id,name,phone_number', // Adjust based on your User model fields
+            'user:id,name,phone_number,profile_photo', // Adjust based on your User model fields
             'replies' => function ($q) {
                 $q->with('user:id,name,phone_number')->limit(3); // Show first 3 replies
             }
@@ -131,12 +131,12 @@ class MessageBoardController extends Controller
         $userId = $request->user()->id;
 
         $post = MessageBoardPost::with([
-            'user:id,name,phone_number',
+            'user:id,name,phone_number,profile_photo',
             'directReplies' => function ($query) {
                 $query->with([
-                    'user:id,name,phone_number',
+                    'user:id,name,phone_number,profile_photo',
                     'childReplies' => function ($q) {
-                        $q->with('user:id,name,phone_number');
+                        $q->with('user:id,name,phone_number,profile_photp');
                     }
                 ]);
             }
