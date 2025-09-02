@@ -30,10 +30,6 @@ class AccountSettingsService
             'preferences' => [
                 'selected_theme' => $user->selected_theme,
                 'default_language' => $user->default_language,
-            ],
-            'available_options' => [
-                'themes' => User::getAvailableThemes(),
-                'languages' => User::getAvailableLanguages(),
             ]
         ];
     }
