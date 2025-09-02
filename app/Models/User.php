@@ -10,10 +10,11 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class User extends Authenticatable
 {
-   use HasApiTokens, Notifiable;
+   use HasApiTokens, Notifiable, softDeletes;
 
     protected $fillable = [
         'name',
@@ -42,6 +43,13 @@ class User extends Authenticatable
         'country',
         'fcm_token',
         'fcm_token_updated_at',
+        'deleted_at',
+        'two_factor_enabled',
+        'push_notifications_enabled',
+        'sound_alerts_enabled',
+        'selected_theme',
+        'default_language',
+        'account_settings_updated_at',
     ];
 
     protected $hidden = [
@@ -59,6 +67,10 @@ class User extends Authenticatable
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
         'fcm_token_updated_at' => 'datetime',
+        'two_factor_enabled' => 'boolean',
+        'push_notifications_enabled' => 'boolean',
+        'sound_alerts_enabled' => 'boolean',
+        'account_settings_updated_at' => 'datetime',
     ];
 
     public function isOtpValid(string $otp): bool
@@ -76,6 +88,43 @@ class User extends Authenticatable
 
         return $code;
     }
+
+    /**
+     * Get login activity history for this user
+     */
+    public function loginActivityHistories(): HasMany
+    {
+        return $this->hasMany(LoginActivityHistory::class);
+    }
+
+    /**
+     * Get recent login activities
+     */
+    public function getRecentLoginActivities(int $limit = 10)
+    {
+        return $this->loginActivityHistories()
+                   ->orderBy('login_at', 'desc')
+                   ->limit($limit)
+                   ->get();
+    }
+
+    /**
+     * Get account settings as array
+     */
+    public function getAccountSettingsAttribute(): array
+    {
+        return [
+            'two_factor_enabled' => $this->two_factor_enabled,
+            'push_notifications_enabled' => $this->push_notifications_enabled,
+            'sound_alerts_enabled' => $this->sound_alerts_enabled,
+            'selected_theme' => $this->selected_theme,
+            'default_language' => $this->default_language,
+        ];
+    }
+
+
+  
+  
 
     public function referralCode()
     {

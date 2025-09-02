@@ -49,13 +49,15 @@ class OnboardingController extends Controller
             'user_id' => 'required|integer|exists:users,id',
             'otp' => 'required|string|size:6',
             'fcm_token' => 'nullable|string|max:255',
+            'device_info' => 'nullable|array',
         ]);
 
         try {
             $result = $this->onboardingService->verifyOtp(
                 $request->user_id,
                 $request->otp,
-                $request->fcm_token ?? null
+                $request->fcm_token ?? null,
+                $request->device_info ?? []
             );
 
             return response()->json([

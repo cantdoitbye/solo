@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AccountSettingsController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\EventDataController;
 use App\Http\Controllers\Api\EventMediaController as ApiEventMediaController;
@@ -228,6 +229,33 @@ Route::middleware(['auth:sanctum'])->group(function () {
     
     // Delete user's review for an event
     Route::delete('/events/{eventId}/reviews', [EventReviewController::class, 'deleteReview']);
+});
+
+
+Route::prefix('account-settings')->name('account-settings.')->middleware('auth:sanctum')->group(function () {
+    
+    // Get all account settings
+    Route::get('/', [AccountSettingsController::class, 'getAccountSettings'])
+        ->name('index');
+    
+    // Update account settings (single API for all settings)
+    Route::put('/', [AccountSettingsController::class, 'updateAccountSettings'])
+        ->name('update');
+    
+    // Security related routes
+    Route::get('security', [AccountSettingsController::class, 'getSecurityInfo'])
+        ->name('security');
+    
+    Route::post('security/two-factor', [AccountSettingsController::class, 'toggleTwoFactor'])
+        ->name('toggle-two-factor');
+    
+    // Login activity history
+    Route::get('login-activity', [AccountSettingsController::class, 'getLoginActivityHistory'])
+        ->name('login-activity');
+    
+    // Delete account
+    Route::delete('/', [AccountSettingsController::class, 'deleteAccount'])
+        ->name('delete');
 });
 
 

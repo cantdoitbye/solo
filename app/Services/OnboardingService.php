@@ -12,7 +12,9 @@ class OnboardingService
     public function __construct(
         private UserRepositoryInterface $userRepository,
         private InterestRepositoryInterface $interestRepository,
-        private ReferralCodeRepositoryInterface $referralCodeRepository
+        private ReferralCodeRepositoryInterface $referralCodeRepository,
+        private AccountSettingsService $accountSettingsService
+
     ) {}
 
     public function initiatePhoneVerification(string $phoneNumber, string $countryCode): array
@@ -36,7 +38,7 @@ class OnboardingService
         ];
     }
 
-  public function verifyOtp(int $userId, string $otp, string $fcmToken = null): array
+  public function verifyOtp(int $userId, string $otp, string $fcmToken = null, array $deviceInfo = []): array
 {
     $isValid = $this->userRepository->verifyOtp($userId, $otp);
     
@@ -45,6 +47,14 @@ class OnboardingService
     }
     
     $user = $this->userRepository->findById($userId);
+
+     $deviceData = array_merge($deviceInfo, [
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
+        
+        $this->accountSettingsService->recordLoginActivity($userId, $deviceData);
+        
     
     // LOGIN FLOW - Check if user has completed onboarding
     if ($user->onboarding_completed) {
