@@ -20,7 +20,6 @@ class User extends Authenticatable
         'name',
         'age',
         'gender',
-        'introduction',
         'phone_number',
         'country_code',
         'phone_verified_at',
