@@ -392,8 +392,13 @@ class HomeScreenService
             'current_count' => $attendeesCount,
             'group_size' => $eventData['min_group_size'],
             'available_spots' => $availableSpots,
-            'spots_text' => $availableSpots > 0 ? "{$availableSpots} spots left" : "Full"
+            'spots_text' => $availableSpots > 0 ? "{$availableSpots} spots left" : "Full",
+             'profiles' => []
         ];
+
+           if (isset($eventData['attendees']) && is_array($eventData['attendees'])) {
+        $baseInfo['profiles'] = $this->formatAttendeeProfiles($eventData['attendees']);
+    }
 
         // Add gender balance information if enabled
         if ($this->isGenderBalancedEvent($eventData)) {
@@ -417,7 +422,54 @@ class HomeScreenService
 
         return $baseInfo;
     }
-
+/**
+ * Format attendee profiles with only essential information
+ */
+private function formatAttendeeProfiles(array $attendees): array
+{
+    $profiles = [];
+    
+    foreach ($attendees as $attendee) {
+        // Handle both array and object formats
+        $attendeeData = is_array($attendee) ? $attendee : $attendee->toArray();
+        
+        // Get user data - check if it's nested or direct
+        $userData = null;
+        if (isset($attendeeData['user'])) {
+            $userData = $attendeeData['user'];
+        } elseif (isset($attendeeData['name']) && isset($attendeeData['id'])) {
+            // Direct user data in attendee
+            $userData = $attendeeData;
+        }
+        
+        if ($userData) {
+            $profile = [
+                'id' => $userData['id'],
+                'name' => $userData['name'],
+                'profile_photo' => $userData['profile_photo'] ?? null
+            ];
+            
+            // Handle multiple members if they exist (from members_data JSON)
+            if (isset($attendeeData['members_data']) && is_array($attendeeData['members_data'])) {
+                $totalMembers = $attendeeData['total_members'] ?? 1;
+                if ($totalMembers > 1) {
+                    // For multi-member bookings, we can show the primary user + member count
+                    $profile['member_count'] = $totalMembers;
+                    
+                    // Optionally include member names for display
+                    $memberNames = array_column($attendeeData['members_data'], 'member_name');
+                    if (!empty($memberNames)) {
+                        $profile['member_names'] = $memberNames;
+                    }
+                }
+            }
+            
+            $profiles[] = $profile;
+        }
+    }
+    
+    return $profiles;
+}
     /**
      * Check if event is gender balanced (based on existing database fields)
      */

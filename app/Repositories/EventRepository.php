@@ -248,8 +248,12 @@ public function getFilteredEvents(array $filters, int $limit = 10, int $offset =
         ->with([
             'host:id,name',
             'suggestedLocation:id,name,description,category',
-            'suggestedLocation.primaryImage:id,suggested_location_id,image_url,is_primary'
-        ])
+            'suggestedLocation.primaryImage:id,suggested_location_id,image_url,is_primary',
+            'attendees' => function($query) {
+                $query->whereIn('status', ['interested', 'confirmed'])
+                      ->with('user:id,name,profile_photo'); // Load user profiles
+            }
+            ])
         ->withCount('attendees');
 
     // Apply date filters (NEW) - This is the critical fix

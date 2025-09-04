@@ -18,6 +18,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name',
+         'dob',
         'age',
         'gender',
         'phone_number',
@@ -57,7 +58,10 @@ class User extends Authenticatable
         'otp_expires_at',
     ];
 
+   
+
     protected $casts = [
+    'dob' => 'date:Y-m-d', // This will format it as Y-m-d in JSON responses
         'phone_verified_at' => 'datetime',
         'otp_expires_at' => 'datetime',
         'discovery_sources' => 'array',
@@ -72,6 +76,24 @@ class User extends Authenticatable
         'sound_alerts_enabled' => 'boolean',
         'account_settings_updated_at' => 'datetime',
     ];
+
+//     public function getDobAttribute($value): ?string
+// {
+//     return $value ? \Carbon\Carbon::parse($value)->format('Y-m-d') : null;
+// }
+
+    // Optional: Add a method to calculate age dynamically from DOB
+public function getCalculatedAgeAttribute(): ?int
+{
+    return $this->dob ? $this->dob->age : null;
+}
+
+// Optional: Accessor to always return current age based on DOB
+public function getAgeAttribute($value): ?int
+{
+    // If DOB exists, calculate age from DOB, otherwise return stored age
+    return $this->dob ? $this->dob->age : $value;
+}
 
     public function isOtpValid(string $otp): bool
     {

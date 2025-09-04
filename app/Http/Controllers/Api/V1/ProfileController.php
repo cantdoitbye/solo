@@ -133,7 +133,8 @@ public function updateProfile(Request $request): JsonResponse
 
     $request->validate([
         'name' => 'sometimes|string|max:255',
-        'age' => 'sometimes|integer|min:18|max:100',
+        // 'age' => 'sometimes|integer|min:18|max:100',
+        'dob' => 'sometimes|date|date_format:Y-m-d',
         'gender' => 'sometimes|in:male,female,other',
         'bio' => 'sometimes|string|max:500',
         'profile_photo' => 'sometimes|file|mimes:jpeg,jpg,png,webp|max:5120', // 5MB max
@@ -148,8 +149,22 @@ public function updateProfile(Request $request): JsonResponse
             $updateData['name'] = $request->name;
         }
 
-        if ($request->has('age')) {
-            $updateData['age'] = $request->age;
+        // if ($request->has('age')) {
+        //     $updateData['age'] = $request->age;
+        // }
+
+          if ($request->has('dob')) {
+            $updateData['dob'] = $request->dob;
+            
+            // Calculate and store age as well (for compatibility/quick access)
+            $birthDate = \Carbon\Carbon::parse($request->dob);
+            $age = $birthDate->age;
+            $updateData['age'] = $age;
+            
+            \Log::info('DOB processed:', [
+                'dob' => $request->dob,
+                'calculated_age' => $age
+            ]);
         }
 
         if ($request->has('gender')) {

@@ -268,6 +268,7 @@ class ProfileService
         'user_id' => $userId,
         'name' => $updatedUser->name,
         'age' => $updatedUser->age ?? null,
+                'dob' => $updatedUser->dob ?? null,
         'gender' => $updatedUser->gender ?? null,
         'bio' => $updatedUser->bio,
         'profile_photo' => $updatedUser->profile_photo,
