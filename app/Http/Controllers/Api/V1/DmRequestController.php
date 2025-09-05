@@ -109,6 +109,8 @@ class DmRequestController extends Controller
 
         } catch (\Exception $e) {
             DB::rollback();
+                Log::error('DM Request failed:', ['error' => $e->getMessage()]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send DM request',
