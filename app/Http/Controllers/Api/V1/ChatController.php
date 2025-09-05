@@ -325,6 +325,75 @@ private function detectMessageType($file): string
  * Get all attendees for a specific event
  * GET /api/v1/events/{eventId}/attendees
  */
+// public function getChatAttendees(Request $request, int $chatId): JsonResponse
+// {
+//     try {
+//         $userId = $request->user()->id;
+//         $getEvent = ChatRoom::find($chatId);
+
+//         if (!$getEvent) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Chat room not found'
+//             ], 404);
+//         }
+//         $eventId = $getEvent->event_id;
+//         // Check if event exists
+//         $event = Event::find($eventId);
+//         if (!$event) {
+//             return response()->json([
+//                 'success' => false,
+//                 'message' => 'Event not found'
+//             ], 404);
+//         }
+
+//         // Get all attendees with user information
+//         $attendees = EventAttendee::with(['user:id,name,profile_photo'])
+//             ->where('event_id', $eventId)
+//             ->whereIn('status', ['interested', 'confirmed'])
+//             ->orderBy('created_at', 'asc') // First joined, first listed
+//             ->get();
+
+//         // Calculate total members count
+//         $totalMembers = $attendees->sum('total_members') ?: $attendees->count();
+        
+//         // Check if current user is attendee or host
+//         $isUserAttendee = $attendees->contains('user_id', $userId);
+//         $isUserHost = $event->host_id === $userId;
+
+//         return response()->json([
+//             'success' => true,
+//             'data' => [
+//                 'event_id' => $eventId,
+//                 'event_name' => $event->name,
+//                 'total_attendees' => $attendees->count(),
+//                 'total_members' => $totalMembers,
+//                 'attendees' => $attendees->map(function ($attendee) {
+//                     return [
+//                         'user_id' => $attendee->user->id,
+//                         'name' => $attendee->user->name,
+//                         'profile_photo' => $attendee->user->profile_photo ?? null,
+//                         'total_members' => $attendee->total_members ?? 1,
+//                     ];
+//                 }),
+//                 'user_context' => [
+//                     'is_attendee' => $isUserAttendee,
+//                     'is_host' => $isUserHost,
+//                     'can_view_attendees' => $isUserAttendee || $isUserHost, // Only attendees and host can see full list
+//                 ]
+//             ]
+//         ]);
+
+//     } catch (\Exception $e) {
+//         Log::error('Event attendees error:', ['error' => $e->getMessage(), 'event_id' => $eventId]);
+        
+//         return response()->json([
+//             'success' => false,
+//             'message' => 'Failed to fetch event attendees'
+//         ], 500);
+//     }
+// }
+
 public function getChatAttendees(Request $request, int $chatId): JsonResponse
 {
     try {
@@ -338,8 +407,9 @@ public function getChatAttendees(Request $request, int $chatId): JsonResponse
             ], 404);
         }
         $eventId = $getEvent->event_id;
-        // Check if event exists
-        $event = Event::find($eventId);
+        
+        // Check if event exists and load host data
+        $event = Event::with(['host:id,name,profile_photo'])->find($eventId);
         if (!$event) {
             return response()->json([
                 'success' => false,
@@ -354,28 +424,50 @@ public function getChatAttendees(Request $request, int $chatId): JsonResponse
             ->orderBy('created_at', 'asc') // First joined, first listed
             ->get();
 
-        // Calculate total members count
-        $totalMembers = $attendees->sum('total_members') ?: $attendees->count();
+        // Calculate total members count (including host)
+        $totalMembers = 1 + ($attendees->sum('total_members') ?: $attendees->count()); // +1 for host
         
         // Check if current user is attendee or host
         $isUserAttendee = $attendees->contains('user_id', $userId);
         $isUserHost = $event->host_id === $userId;
+
+        // Build attendees array with host first
+        $attendeesData = collect();
+        
+        // Add host as first attendee
+        if ($event->host) {
+            $attendeesData->push([
+                'user_id' => $event->host->id,
+                'name' => $event->host->name,
+                'profile_photo' => $event->host->profile_photo ?? null,
+                'total_members' => 1,
+                'is_host' => true,
+                'role' => 'host'
+            ]);
+        }
+
+        // Add regular attendees
+        $attendees->each(function ($attendee) use ($attendeesData) {
+            if ($attendee->user) { // Check if user exists (not soft deleted)
+                $attendeesData->push([
+                    'user_id' => $attendee->user->id,
+                    'name' => $attendee->user->name,
+                    'profile_photo' => $attendee->user->profile_photo ?? null,
+                    'total_members' => $attendee->total_members ?? 1,
+                    'is_host' => false,
+                    'role' => 'attendee'
+                ]);
+            }
+        });
 
         return response()->json([
             'success' => true,
             'data' => [
                 'event_id' => $eventId,
                 'event_name' => $event->name,
-                'total_attendees' => $attendees->count(),
-                'total_members' => $totalMembers,
-                'attendees' => $attendees->map(function ($attendee) {
-                    return [
-                        'user_id' => $attendee->user->id,
-                        'name' => $attendee->user->name,
-                        'profile_photo' => $attendee->user->profile_photo ?? null,
-                        'total_members' => $attendee->total_members ?? 1,
-                    ];
-                }),
+                'total_attendees' => $attendees->count() + 1, // +1 for host
+                'total_members' => $totalMembers, // Host + sum of all attendee members
+                'attendees' => $attendeesData->values(), // Reset array keys
                 'user_context' => [
                     'is_attendee' => $isUserAttendee,
                     'is_host' => $isUserHost,
@@ -385,7 +477,7 @@ public function getChatAttendees(Request $request, int $chatId): JsonResponse
         ]);
 
     } catch (\Exception $e) {
-        Log::error('Event attendees error:', ['error' => $e->getMessage(), 'event_id' => $eventId]);
+        Log::error('Event attendees error:', ['error' => $e->getMessage(), 'event_id' => $eventId ?? null]);
         
         return response()->json([
             'success' => false,
