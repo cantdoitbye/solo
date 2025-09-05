@@ -267,8 +267,8 @@ Route::get('test-message-board', function () {
 
 Route::prefix('dm-requests')->name('dm-requests.')->group(function () {
     Route::post('/', [DmRequestController::class, 'sendDmRequest'])->name('send');
-    Route::post('{dmRequestId}/accept', [DmRequestController::class, 'acceptDmRequest'])->name('accept');
-    Route::post('{dmRequestId}/reject', [DmRequestController::class, 'rejectDmRequest'])->name('reject');
+    Route::put('{dmRequestId}/accept', [DmRequestController::class, 'acceptDmRequest'])->name('accept');
+    Route::put('{dmRequestId}/reject', [DmRequestController::class, 'rejectDmRequest'])->name('reject');
     Route::get('pending', [DmRequestController::class, 'getPendingDmRequests'])->name('pending');
     Route::get('sent', [DmRequestController::class, 'getSentDmRequests'])->name('sent');
 });
