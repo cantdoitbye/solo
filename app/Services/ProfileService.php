@@ -72,6 +72,8 @@ class ProfileService
             'user' => [
                 'id' => $user->id,
                 'phone_number' => $user->phone_number,
+                'dob' => $user->dob?->toDateString(),
+                'age' => $user->age ?? null,
                 'country_code' => $user->country_code,
                 'phone_verified' => !is_null($user->phone_verified_at),
                 'phone_verified_at' => $user->phone_verified_at?->toISOString(),
@@ -141,6 +143,7 @@ class ProfileService
                 'id' => $user->id,
                 'name' => $user->name,
                 'gender' => $user->gender,
+                'dob' => $user->dob?->toDateString(),
                 'age' => $user->age ?? null,
                 'bio' => $user->bio,
                 'olos_balance' => $user->getCurrentOlosBalance(),
