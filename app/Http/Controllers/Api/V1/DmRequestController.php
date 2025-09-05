@@ -28,7 +28,7 @@ class DmRequestController extends Controller
      * Send a DM request to another user
      * POST /api/v1/dm-requests
      */
-    public function sendDmRequest(Request $request, User $id): JsonResponse
+    public function sendDmRequest(Request $request): JsonResponse
     {
         $request->validate([
             'receiver_id' => 'required|integer|exists:users,id',
