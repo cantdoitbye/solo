@@ -246,7 +246,7 @@ public function getFilteredEvents(array $filters, int $limit = 10, int $offset =
     $query = Event::published()
         ->upcoming()
         ->with([
-            'host:id,name',
+            'host:id,name,profile_photo',
             'suggestedLocation:id,name,description,category',
             'suggestedLocation.primaryImage:id,suggested_location_id,image_url,is_primary',
             'attendees' => function($query) {
