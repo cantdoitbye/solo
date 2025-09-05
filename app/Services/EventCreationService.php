@@ -235,7 +235,7 @@ class EventCreationService
             // No age restriction - allow all adults
             return [
                 'min_age' => 18,
-                'max_age' => 100
+                'max_age' => 85
             ];
         }
         
