@@ -89,12 +89,12 @@ class DmRequestController extends Controller
             ]);
 
             // Send notification to receiver
-            // $this->notificationService->sendDmRequestNotification(
-            //     $dmRequest->id,
-            //     $senderId,
-            //     $receiverId,
-            //     $request->input('message')
-            // );
+            $this->notificationService->sendDmRequestNotification(
+                $dmRequest->id,
+                $senderId,
+                $receiverId,
+                $request->input('message')
+            );
 
             DB::commit();
 
