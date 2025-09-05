@@ -111,7 +111,8 @@ class DmRequestController extends Controller
             DB::rollback();
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to send DM request'
+                'message' => 'Failed to send DM request',
+                'error' => $e->getMessage()
             ], 500);
         }
     }
