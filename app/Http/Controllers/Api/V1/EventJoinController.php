@@ -122,6 +122,7 @@ class EventJoinController extends Controller
                         'id' => $event->host->id,
                         'name' => $event->host->name ?? 'Unknown',
                         'phone_number' => $event->host->phone_number ?? null,
+                        'profile_photo' => $event->host->profile_photo ?? null,
                     ],
                     
                     // UPDATED: Requirements with gender balance info
@@ -244,7 +245,7 @@ private function getAgeRangeDisplay($event): string
      * Join an event with multiple members (single API endpoint)
      * POST /api/v1/events/{eventId}/join
      */
-    public function joinEvent(Request $request, int $eventId): JsonResponse
+    public function joinEvent(Request $request, int $eventId)
     {
         $request->validate([
             'members' => 'required|array|min:1|max:10', // Allow up to 10 members max
@@ -270,7 +271,6 @@ private function getAgeRangeDisplay($event): string
             $membersData = $request->input('members');
         $processedMembersData = $this->processGovtIdUploads($request, $membersData);
         
-
 
             $result = $this->eventJoinService->joinEvent(
                 $request->user()->id,

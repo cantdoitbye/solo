@@ -23,12 +23,95 @@ class EventJoinService
         $this->olosService = $olosService;
     }
 
-    /**
-     * Handle user joining an event with multiple members (single API endpoint)
-     */
-    public function joinEvent(int $userId, int $eventId, array $membersData): array
-    {
-        return DB::transaction(function () use ($userId, $eventId, $membersData) {
+//     /**
+//      * Handle user joining an event with multiple members (single API endpoint)
+//      */
+//     public function joinEvent(int $userId, int $eventId, array $membersData): array
+//     {
+//         return DB::transaction(function () use ($userId, $eventId, $membersData) {
+//             // 1. Validate event exists and is active
+//             $event = $this->validateEvent($eventId);
+            
+//             // 2. Validate members data
+//             $this->validateMembersData($membersData);
+            
+//             // 3. Calculate total members and cost
+//             $totalMembers = count($membersData);
+//             $costPerMember = $event->token_cost_per_attendee;
+//             $totalCost = $totalMembers * $costPerMember;
+            
+//             // 4. Validate user eligibility
+//             $this->validateUserEligibility($userId, $event);
+            
+//             // 5. Check if user already joined
+//             $this->checkExistingAttendance($userId, $eventId);
+            
+//             // 6. Validate Olos balance for total cost
+//             // $this->validateOlosBalance($userId, $totalCost);
+            
+//             // 7. Check event capacity for all members
+//             $this->validateEventCapacity($event, $totalMembers);
+            
+//             // 8. Deduct total Olos cost
+//             $olosTransaction = $this->deductEventCost($userId, $event, $totalMembers, $totalCost);
+            
+//             // 9. Create attendee record with member data as JSON
+//             $attendee = $this->createAttendeeRecord($userId, $event, $totalMembers, $costPerMember, $totalCost, $membersData);
+            
+//             app(\App\Services\FirebaseNotificationService::class)->sendMemberJoinNotification(
+//     $eventId, 
+//     $userId, 
+//     $totalMembers
+// );
+//             // 10. Update user's Olos balance info
+//             $userOlosSummary = $this->olosService->getUserOlosSummary($userId);
+            
+//                $chatService = app(ChatService::class);
+//         $chatService->addUserToEventChat($eventId, $userId);
+//             return [
+//                 'success' => true,
+//                 'message' => 'Successfully joined the event!',
+//                 'event_id' => $eventId,
+//                 'attendee_id' => $attendee->id,
+//                 'status' => $attendee->status,
+//                 'total_members' => $totalMembers,
+//                 'cost_per_member' => $costPerMember,
+//                 'total_cost' => $totalCost,
+//                 'tokens_paid' => $attendee->tokens_paid, // Legacy field, same as total_cost
+//                 'joined_at' => $attendee->joined_at->toISOString(),
+//                 'members' => $membersData, // Return the member data directly
+//                 'olos_balance' => [
+//                     'current_balance' => $userOlosSummary['current_balance'],
+//                     'tokens_spent' => $totalCost,
+//                     'transaction_id' => $olosTransaction->id,
+//                 ],
+//                 'event_details' => [
+//                     'name' => $event->name,
+//                     'event_date' => $event->event_date->toDateString(),
+//                     'event_time' => $event->event_time->format('H:i'),
+//                     'venue_name' => $event->venue_name,
+//                     'token_cost_per_attendee' => $event->token_cost_per_attendee,
+//                     'current_total_attendees' => $this->getTotalEventAttendees($event),
+//                     'max_group_size' => $event->max_group_size,
+//                 ],
+//             ];
+//         });
+//     }
+
+/**
+ * Handle user joining an event with multiple members (single API endpoint)
+ */
+public function joinEvent(int $userId, int $eventId, array $membersData): array
+{
+    return DB::transaction(function () use ($userId, $eventId, $membersData) {
+        try {
+            // Add logging to debug the issue
+            \Log::info('EventJoinService::joinEvent called', [
+                'userId' => $userId,
+                'eventId' => $eventId,
+                'membersCount' => count($membersData)
+            ]);
+
             // 1. Validate event exists and is active
             $event = $this->validateEvent($eventId);
             
@@ -58,16 +141,38 @@ class EventJoinService
             // 9. Create attendee record with member data as JSON
             $attendee = $this->createAttendeeRecord($userId, $event, $totalMembers, $costPerMember, $totalCost, $membersData);
             
-            app(\App\Services\FirebaseNotificationService::class)->sendMemberJoinNotification(
-    $eventId, 
-    $userId, 
-    $totalMembers
-);
-            // 10. Update user's Olos balance info
+            // 10. Send notification to event creator
+            try {
+                app(\App\Services\FirebaseNotificationService::class)->sendMemberJoinNotification(
+                    $eventId, 
+                    $userId, 
+                    $totalMembers
+                );
+            } catch (\Exception $e) {
+                \Log::error('Failed to send member join notification', [
+                    'error' => $e->getMessage(),
+                    'eventId' => $eventId,
+                    'userId' => $userId
+                ]);
+                // Don't fail the entire transaction for notification failure
+            }
+            
+            // 11. Update user's Olos balance info
             $userOlosSummary = $this->olosService->getUserOlosSummary($userId);
             
-               $chatService = app(ChatService::class);
-        $chatService->addUserToEventChat($eventId, $userId);
+            // 12. Add user to event chat
+            try {
+                $chatService = app(\App\Services\ChatService::class);
+                $chatService->addUserToEventChat($eventId, $userId);
+            } catch (\Exception $e) {
+                \Log::error('Failed to add user to event chat', [
+                    'error' => $e->getMessage(),
+                    'eventId' => $eventId,
+                    'userId' => $userId
+                ]);
+                // Don't fail the entire transaction for chat failure
+            }
+            
             return [
                 'success' => true,
                 'message' => 'Successfully joined the event!',
@@ -95,8 +200,18 @@ class EventJoinService
                     'max_group_size' => $event->max_group_size,
                 ],
             ];
-        });
-    }
+
+        } catch (\Exception $e) {
+            \Log::error('EventJoinService::joinEvent error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'userId' => $userId ?? 'undefined',
+                'eventId' => $eventId ?? 'undefined'
+            ]);
+            throw $e;
+        }
+    });
+}
 
     /**
      * Validate event exists and is joinable
