@@ -421,15 +421,18 @@ class HomeScreenService
     }
 
 
-    /**
-     * FIXED: Calculate actual attendees from total_members, not attendees_count
+  /**
+     * FIXED: Calculate actual attendees including event host
      */
     private function calculateActualAttendees(array $eventData): int
     {
+        $totalMembers = 0;
+        
+        // Add 1 for the event host (host is always counted as an attendee)
+        $totalMembers += 1;
+        
         // If attendees data is loaded with the event
         if (isset($eventData['attendees']) && is_array($eventData['attendees'])) {
-            $totalMembers = 0;
-            
             foreach ($eventData['attendees'] as $attendee) {
                 $attendeeData = is_array($attendee) ? $attendee : $attendee->toArray();
                 
@@ -443,8 +446,8 @@ class HomeScreenService
             return $totalMembers;
         }
         
-        // Fallback to attendees_count if attendees array not loaded (legacy)
-        return $eventData['attendees_count'] ?? 0;
+        // Fallback: host + attendees_count if attendees array not loaded (legacy)
+        return 1 + ($eventData['attendees_count'] ?? 0);
     }
     /**
      * Get attendee information including gender balance (NEW)
@@ -493,23 +496,35 @@ class HomeScreenService
     /**
      * FIXED: Get attendee information using actual member count from members_data
      */
-    private function getAttendeeInfo(array $eventData): array
+   private function getAttendeeInfo(array $eventData): array
     {
-        // Calculate actual attendees from total_members
+        // Calculate actual attendees including host
         $currentAttendees = $this->calculateActualAttendees($eventData);
         $maxGroupSize = $eventData['max_group_size'] ?? $eventData['min_group_size'] ?? 0;
         $availableSpots = max(0, $maxGroupSize - $currentAttendees);
         
         $baseInfo = [
-            'current_count' => $currentAttendees, // FIXED: Use actual member count
+            'current_count' => $currentAttendees, // Includes host + members
             'group_size' => $eventData['min_group_size'],
             'available_spots' => $availableSpots,
             'spots_text' => $availableSpots > 0 ? "{$availableSpots} spots left" : "Full",
             'profiles' => []
         ];
 
+        // Format profiles with host first, then members
         if (isset($eventData['attendees']) && is_array($eventData['attendees'])) {
-            $baseInfo['profiles'] = $this->formatAttendeeProfiles($eventData['attendees']);
+            $baseInfo['profiles'] = $this->formatAttendeeProfiles($eventData['attendees'], $eventData);
+        } else {
+            // If no attendees data, still show the host
+            if (isset($eventData['host'])) {
+                $host = $eventData['host'];
+                $baseInfo['profiles'] = [[
+                    'id' => $host['id'],
+                    'name' => $host['name'],
+                    'profile_photo' => $host['profile_photo'] ?? null,
+                    'is_host' => true
+                ]];
+            }
         }
 
         // Add gender balance information if enabled
@@ -596,10 +611,22 @@ class HomeScreenService
      * FIXED: Format attendee profiles showing only member names from members_data
      * Handles soft deleted users by always using members_data regardless of user status
      */
-    private function formatAttendeeProfiles(array $attendees): array
+  private function formatAttendeeProfiles(array $attendees, array $eventData): array
     {
         $profiles = [];
         
+        // FIRST: Add the event host as the first profile
+        if (isset($eventData['host'])) {
+            $host = $eventData['host'];
+            $profiles[] = [
+                'id' => $host['id'],
+                'name' => $host['name'],
+                'profile_photo' => $host['profile_photo'] ?? null,
+                'is_host' => true // Mark as host for identification
+            ];
+        }
+        
+        // THEN: Add all members from members_data
         foreach ($attendees as $attendee) {
             // Handle both array and object formats
             $attendeeData = is_array($attendee) ? $attendee : $attendee->toArray();
@@ -610,7 +637,7 @@ class HomeScreenService
                 continue;
             }
             
-            // FIXED: Always get members_data regardless of user status (soft deleted or not)
+            // Get members_data JSON
             $membersData = $attendeeData['members_data'] ?? [];
             
             // Extract individual members from the JSON data
@@ -620,13 +647,13 @@ class HomeScreenService
                         $profiles[] = [
                             'id' => null, // No user ID for individual members
                             'name' => $member['member_name'],
-                            'profile_photo' => null // Members don't have profile photos
+                            'profile_photo' => null, // Members don't have profile photos
+                            'is_host' => false
                         ];
                     }
                 }
             }
-            // FIXED: If no members_data but total_members exists, it might be legacy data
-            // In this case, we should still account for the attendee
+            // Handle legacy data without members_data
             else {
                 $totalMembers = $attendeeData['total_members'] ?? 1;
                 
@@ -635,7 +662,8 @@ class HomeScreenService
                     $profiles[] = [
                         'id' => null,
                         'name' => 'Member ' . ($i + 1), // Placeholder name
-                        'profile_photo' => null
+                        'profile_photo' => null,
+                        'is_host' => false
                     ];
                 }
             }
