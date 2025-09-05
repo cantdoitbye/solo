@@ -66,6 +66,14 @@ class FirebaseNotificationService
     {
         $accessToken = $this->generateAccessToken();
         
+  if (!$accessToken) {
+            Log::error('Failed to generate Firebase access token');
+            return false;
+        }
+
+            // Handle both User model and direct FCM token
+        $fcmToken = is_string($to) ? $to : $to->fcm_token;
+        $userId = is_string($to) ? null : $to->id;
           if ($userId) {
             $notification = AppNotification::create([
                 'title' => $title,
@@ -77,14 +85,9 @@ class FirebaseNotificationService
                 'sent_at' => now(),
             ]);
         }
-        if (!$accessToken) {
-            Log::error('Failed to generate Firebase access token');
-            return false;
-        }
+      
 
-        // Handle both User model and direct FCM token
-        $fcmToken = is_string($to) ? $to : $to->fcm_token;
-        $userId = is_string($to) ? null : $to->id;
+    
 
         if (empty($fcmToken)) {
             Log::warning('FCM token not found', ['user_id' => $userId]);
