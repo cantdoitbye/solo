@@ -351,8 +351,23 @@ class DmRequestController extends Controller
                 ];
             }
 
+              $canSendDmRequest = !$existingChat && (
+            !$dmRequest || 
+            in_array($dmRequest->status, ['rejected'])
+        );
+
+        // If there's a pending DM request, user cannot send another one
+        if ($dmRequest && $dmRequest->status === 'pending') {
+            $canSendDmRequest = false;
+        }
+
+        // If there's an accepted DM request, they should have a chat already
+        // But just in case, don't allow new DM requests
+        if ($dmRequest && $dmRequest->status === 'accepted') {
+            $canSendDmRequest = false;
+        }
             // Can send DM request if no existing request and no chat
-            $canSendDmRequest = !$dmRequest && !$existingChat;
+            // $canSendDmRequest = !$dmRequest && !$existingChat;
         }
 
         // Get mutual events (events both users have joined)
