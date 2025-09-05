@@ -231,15 +231,62 @@ class HomeScreenService
     /**
      * SIMPLIFIED: Format Events for Mobile Index Page (Minimal Data)
      */
+    // private function formatEventsForMobile(array $events, int $userId = null): array
+    // {
+    //     return array_map(function ($event) use ($userId) {
+    //         // Handle array vs object conversion
+    //         $eventData = is_array($event) ? $event : $event->toArray();
+            
+    //         $maxGroupSize = $eventData['max_group_size'] ?? $eventData['min_group_size'] ?? 0;
+    //         $attendeesCount = $eventData['attendees_count'] ?? 0;
+    //         $availableSpots = $maxGroupSize - $attendeesCount;
+            
+    //         return [
+    //             'id' => $eventData['id'],
+    //             'name' => $eventData['name'],
+    //             'description' => $eventData['description'],
+    //             'host_name' => $eventData['host']['name'] ?? 'Unknown Host',
+    //             'date' => Carbon::parse($eventData['event_date'])->format('M j, Y'),
+    //             'time' => Carbon::parse($eventData['event_time'])->format('H:i'),
+                
+    //             // SIMPLIFIED: Basic location info only
+    //             'location' => [
+    //                 'venue_name' => $eventData['venue_name'] ?? null,
+    //                 'city' => $eventData['city'] ?? null,
+    //             ],
+                
+    //             // SIMPLIFIED: Basic attendee info (UPDATED with gender balance)
+    //             'attendees' => $this->getAttendeeInfo($eventData),
+                
+    //             // SIMPLIFIED: Fixed cost info
+    //             'cost' => [
+    //                 'token_cost' => 5.00, // Fixed 5 olos
+    //                 'currency' => 'Olos'
+    //             ],
+                
+    //             // SIMPLIFIED: Primary image only from LocationImage
+    //             'image_url' => $this->getPrimaryLocationImage($eventData),
+                
+    //             // SIMPLIFIED: Age range display
+    //             'age_range' => $this->getSimpleAgeRange($eventData),
+                
+    //             // Basic status
+    //             'is_user_joined' => $userId ? $this->isUserJoined($eventData['id'], $userId) : false,
+    //             'can_join' => $availableSpots > 0 && ($eventData['status'] ?? '') === 'published'
+    //         ];
+    //     }, $events);
+    // }
+
     private function formatEventsForMobile(array $events, int $userId = null): array
     {
         return array_map(function ($event) use ($userId) {
             // Handle array vs object conversion
             $eventData = is_array($event) ? $event : $event->toArray();
             
+            // FIXED: Calculate actual attendees from members_data
+            $currentAttendees = $this->calculateActualAttendees($eventData);
             $maxGroupSize = $eventData['max_group_size'] ?? $eventData['min_group_size'] ?? 0;
-            $attendeesCount = $eventData['attendees_count'] ?? 0;
-            $availableSpots = $maxGroupSize - $attendeesCount;
+            $availableSpots = max(0, $maxGroupSize - $currentAttendees);
             
             return [
                 'id' => $eventData['id'],
@@ -249,28 +296,22 @@ class HomeScreenService
                 'date' => Carbon::parse($eventData['event_date'])->format('M j, Y'),
                 'time' => Carbon::parse($eventData['event_time'])->format('H:i'),
                 
-                // SIMPLIFIED: Basic location info only
                 'location' => [
                     'venue_name' => $eventData['venue_name'] ?? null,
                     'city' => $eventData['city'] ?? null,
                 ],
                 
-                // SIMPLIFIED: Basic attendee info (UPDATED with gender balance)
+                // FIXED: Use proper attendee counting
                 'attendees' => $this->getAttendeeInfo($eventData),
                 
-                // SIMPLIFIED: Fixed cost info
                 'cost' => [
                     'token_cost' => 5.00, // Fixed 5 olos
                     'currency' => 'Olos'
                 ],
                 
-                // SIMPLIFIED: Primary image only from LocationImage
                 'image_url' => $this->getPrimaryLocationImage($eventData),
-                
-                // SIMPLIFIED: Age range display
                 'age_range' => $this->getSimpleAgeRange($eventData),
                 
-                // Basic status
                 'is_user_joined' => $userId ? $this->isUserJoined($eventData['id'], $userId) : false,
                 'can_join' => $availableSpots > 0 && ($eventData['status'] ?? '') === 'published'
             ];
@@ -379,26 +420,97 @@ class HomeScreenService
         }, $dates);
     }
 
+
+    /**
+     * FIXED: Calculate actual attendees from total_members, not attendees_count
+     */
+    private function calculateActualAttendees(array $eventData): int
+    {
+        // If attendees data is loaded with the event
+        if (isset($eventData['attendees']) && is_array($eventData['attendees'])) {
+            $totalMembers = 0;
+            
+            foreach ($eventData['attendees'] as $attendee) {
+                $attendeeData = is_array($attendee) ? $attendee : $attendee->toArray();
+                
+                // Only count active attendees (interested or confirmed)
+                $status = $attendeeData['status'] ?? 'interested';
+                if (in_array($status, ['interested', 'confirmed'])) {
+                    $totalMembers += $attendeeData['total_members'] ?? 1;
+                }
+            }
+            
+            return $totalMembers;
+        }
+        
+        // Fallback to attendees_count if attendees array not loaded (legacy)
+        return $eventData['attendees_count'] ?? 0;
+    }
     /**
      * Get attendee information including gender balance (NEW)
      */
+    // private function getAttendeeInfo(array $eventData): array
+    // {
+    //     $maxGroupSize = $eventData['max_group_size'] ?? $eventData['min_group_size'] ?? 0;
+    //     $attendeesCount = $eventData['attendees_count'] ?? 0;
+    //     $availableSpots = $maxGroupSize - $attendeesCount;
+        
+    //     $baseInfo = [
+    //         'current_count' => $attendeesCount,
+    //         'group_size' => $eventData['min_group_size'],
+    //         'available_spots' => $availableSpots,
+    //         'spots_text' => $availableSpots > 0 ? "{$availableSpots} spots left" : "Full",
+    //          'profiles' => []
+    //     ];
+
+    //        if (isset($eventData['attendees']) && is_array($eventData['attendees'])) {
+    //     $baseInfo['profiles'] = $this->formatAttendeeProfiles($eventData['attendees']);
+    // }
+
+    //     // Add gender balance information if enabled
+    //     if ($this->isGenderBalancedEvent($eventData)) {
+    //         $genderSlots = $this->calculateGenderSlots($eventData);
+    //         $currentGenderCount = $this->getCurrentGenderCount($eventData);
+            
+    //         $baseInfo['gender_balance'] = [
+    //             'enabled' => true,
+    //             'ratio' => "{$genderSlots['male']}:{$genderSlots['female']}", // Show actual numbers (3:3)
+    //             'male_spots_left' => max(0, $genderSlots['male'] - $currentGenderCount['male']),
+    //             'female_spots_left' => max(0, $genderSlots['female'] - $currentGenderCount['female']),
+    //             'male_spots_total' => $genderSlots['male'],
+    //             'female_spots_total' => $genderSlots['female'],
+    //             'spots_text' => $this->getGenderSpotsText($genderSlots, $currentGenderCount)
+    //         ];
+    //     } else {
+    //         $baseInfo['gender_balance'] = [
+    //             'enabled' => false
+    //         ];
+    //     }
+
+    //     return $baseInfo;
+    // }
+
+    /**
+     * FIXED: Get attendee information using actual member count from members_data
+     */
     private function getAttendeeInfo(array $eventData): array
     {
+        // Calculate actual attendees from total_members
+        $currentAttendees = $this->calculateActualAttendees($eventData);
         $maxGroupSize = $eventData['max_group_size'] ?? $eventData['min_group_size'] ?? 0;
-        $attendeesCount = $eventData['attendees_count'] ?? 0;
-        $availableSpots = $maxGroupSize - $attendeesCount;
+        $availableSpots = max(0, $maxGroupSize - $currentAttendees);
         
         $baseInfo = [
-            'current_count' => $attendeesCount,
+            'current_count' => $currentAttendees, // FIXED: Use actual member count
             'group_size' => $eventData['min_group_size'],
             'available_spots' => $availableSpots,
             'spots_text' => $availableSpots > 0 ? "{$availableSpots} spots left" : "Full",
-             'profiles' => []
+            'profiles' => []
         ];
 
-           if (isset($eventData['attendees']) && is_array($eventData['attendees'])) {
-        $baseInfo['profiles'] = $this->formatAttendeeProfiles($eventData['attendees']);
-    }
+        if (isset($eventData['attendees']) && is_array($eventData['attendees'])) {
+            $baseInfo['profiles'] = $this->formatAttendeeProfiles($eventData['attendees']);
+        }
 
         // Add gender balance information if enabled
         if ($this->isGenderBalancedEvent($eventData)) {
@@ -407,7 +519,7 @@ class HomeScreenService
             
             $baseInfo['gender_balance'] = [
                 'enabled' => true,
-                'ratio' => "{$genderSlots['male']}:{$genderSlots['female']}", // Show actual numbers (3:3)
+                'ratio' => "{$genderSlots['male']}:{$genderSlots['female']}",
                 'male_spots_left' => max(0, $genderSlots['male'] - $currentGenderCount['male']),
                 'female_spots_left' => max(0, $genderSlots['female'] - $currentGenderCount['female']),
                 'male_spots_total' => $genderSlots['male'],
@@ -425,51 +537,112 @@ class HomeScreenService
 /**
  * Format attendee profiles with only essential information
  */
-private function formatAttendeeProfiles(array $attendees): array
-{
-    $profiles = [];
+// private function formatAttendeeProfiles(array $attendees): array
+// {
+//     $profiles = [];
     
-    foreach ($attendees as $attendee) {
-        // Handle both array and object formats
-        $attendeeData = is_array($attendee) ? $attendee : $attendee->toArray();
+//     foreach ($attendees as $attendee) {
+//         // Handle both array and object formats
+//         $attendeeData = is_array($attendee) ? $attendee : $attendee->toArray();
         
-        // Get user data - check if it's nested or direct
-        $userData = null;
-        if (isset($attendeeData['user'])) {
-            $userData = $attendeeData['user'];
-        } elseif (isset($attendeeData['name']) && isset($attendeeData['id'])) {
-            // Direct user data in attendee
-            $userData = $attendeeData;
-        }
+//         // Get user data - check if it's nested or direct
+//         $userData = null;
+//         if (isset($attendeeData['user'])) {
+//             $userData = $attendeeData['user'];
+//         } elseif (isset($attendeeData['name']) && isset($attendeeData['id'])) {
+//             // Direct user data in attendee
+//             $userData = $attendeeData;
+//         }
         
-        if ($userData) {
-            $profile = [
-                'id' => $userData['id'],
-                'name' => $userData['name'],
-                'profile_photo' => $userData['profile_photo'] ?? null
-            ];
+//         if ($userData) {
+//             $profile = [
+//                 'id' => $userData['id'],
+//                 'name' => $userData['name'],
+//                 'profile_photo' => $userData['profile_photo'] ?? null
+//             ];
             
-            // Handle multiple members if they exist (from members_data JSON)
-            if (isset($attendeeData['members_data']) && is_array($attendeeData['members_data'])) {
-                $totalMembers = $attendeeData['total_members'] ?? 1;
-                if ($totalMembers > 1) {
-                    // For multi-member bookings, we can show the primary user + member count
-                    $profile['member_count'] = $totalMembers;
+//             // Handle multiple members if they exist (from members_data JSON)
+//             if (isset($attendeeData['members_data']) && is_array($attendeeData['members_data'])) {
+//                 $totalMembers = $attendeeData['total_members'] ?? 1;
+//                 if ($totalMembers > 1) {
+//                     // For multi-member bookings, we can show the primary user + member count
+//                     $profile['member_count'] = $totalMembers;
                     
-                    // Optionally include member names for display
-                    $memberNames = array_column($attendeeData['members_data'], 'member_name');
-                    if (!empty($memberNames)) {
-                        $profile['member_names'] = $memberNames;
+//                     // Optionally include member names for display
+//                     $memberNames = array_column($attendeeData['members_data'], 'member_name');
+//                     if (!empty($memberNames)) {
+//                         $profile['member_names'] = $memberNames;
+//                     }
+//                 }
+//             }
+            
+//             $profiles[] = $profile;
+//         }
+//     }
+    
+//     return $profiles;
+// }
+
+/**
+     * FIXED: Format attendee profiles with proper member data from members_data JSON
+     */
+   /**
+     * FIXED: Format attendee profiles with proper member data from members_data JSON
+     */
+  /**
+     * FIXED: Format attendee profiles showing only member names from members_data
+     */
+   /**
+     * FIXED: Format attendee profiles showing only member names from members_data
+     * Handles soft deleted users by always using members_data regardless of user status
+     */
+    private function formatAttendeeProfiles(array $attendees): array
+    {
+        $profiles = [];
+        
+        foreach ($attendees as $attendee) {
+            // Handle both array and object formats
+            $attendeeData = is_array($attendee) ? $attendee : $attendee->toArray();
+            
+            // Only include active attendees (interested or confirmed)
+            $status = $attendeeData['status'] ?? 'interested';
+            if (!in_array($status, ['interested', 'confirmed'])) {
+                continue;
+            }
+            
+            // FIXED: Always get members_data regardless of user status (soft deleted or not)
+            $membersData = $attendeeData['members_data'] ?? [];
+            
+            // Extract individual members from the JSON data
+            if (is_array($membersData) && !empty($membersData)) {
+                foreach ($membersData as $member) {
+                    if (isset($member['member_name']) && !empty(trim($member['member_name']))) {
+                        $profiles[] = [
+                            'id' => null, // No user ID for individual members
+                            'name' => $member['member_name'],
+                            'profile_photo' => null // Members don't have profile photos
+                        ];
                     }
                 }
             }
-            
-            $profiles[] = $profile;
+            // FIXED: If no members_data but total_members exists, it might be legacy data
+            // In this case, we should still account for the attendee
+            else {
+                $totalMembers = $attendeeData['total_members'] ?? 1;
+                
+                // For legacy records without members_data, create placeholder entries
+                for ($i = 0; $i < $totalMembers; $i++) {
+                    $profiles[] = [
+                        'id' => null,
+                        'name' => 'Member ' . ($i + 1), // Placeholder name
+                        'profile_photo' => null
+                    ];
+                }
+            }
         }
+        
+        return $profiles;
     }
-    
-    return $profiles;
-}
     /**
      * Check if event is gender balanced (based on existing database fields)
      */
