@@ -170,9 +170,9 @@ class EventJoinController extends Controller
                 ],
                 
                 // Validation messages
-                'validation' => [
-                    'messages' => $this->getValidationMessages($event, $userId, $userOlosBalance, $availableSlots),
-                ],
+                // 'validation' => [
+                //     'messages' => $this->getValidationMessages($event, $userId, $userOlosBalance, $availableSlots),
+                // ],
             ]
         ]);
 

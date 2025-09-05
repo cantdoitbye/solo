@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\ChatRoom;
+use App\Models\Event;
+use App\Models\EventAttendee;
 use App\Services\ChatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -317,4 +319,78 @@ private function detectMessageType($file): string
             ], 500);
         }
     }
+
+
+    /**
+ * Get all attendees for a specific event
+ * GET /api/v1/events/{eventId}/attendees
+ */
+public function getChatAttendees(Request $request, int $chatId): JsonResponse
+{
+    try {
+        $userId = $request->user()->id;
+        $getEvent = ChatRoom::find($chatId);
+
+        if (!$getEvent) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chat room not found'
+            ], 404);
+        }
+        $eventId = $getEvent->event_id;
+        // Check if event exists
+        $event = Event::find($eventId);
+        if (!$event) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Event not found'
+            ], 404);
+        }
+
+        // Get all attendees with user information
+        $attendees = EventAttendee::with(['user:id,name,profile_photo'])
+            ->where('event_id', $eventId)
+            ->whereIn('status', ['interested', 'confirmed'])
+            ->orderBy('created_at', 'asc') // First joined, first listed
+            ->get();
+
+        // Calculate total members count
+        $totalMembers = $attendees->sum('total_members') ?: $attendees->count();
+        
+        // Check if current user is attendee or host
+        $isUserAttendee = $attendees->contains('user_id', $userId);
+        $isUserHost = $event->host_id === $userId;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'event_id' => $eventId,
+                'event_name' => $event->name,
+                'total_attendees' => $attendees->count(),
+                'total_members' => $totalMembers,
+                'attendees' => $attendees->map(function ($attendee) {
+                    return [
+                        'user_id' => $attendee->user->id,
+                        'name' => $attendee->user->name,
+                        'profile_photo' => $attendee->user->profile_photo ?? null,
+                        'total_members' => $attendee->total_members ?? 1,
+                    ];
+                }),
+                'user_context' => [
+                    'is_attendee' => $isUserAttendee,
+                    'is_host' => $isUserHost,
+                    'can_view_attendees' => $isUserAttendee || $isUserHost, // Only attendees and host can see full list
+                ]
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Event attendees error:', ['error' => $e->getMessage(), 'event_id' => $eventId]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to fetch event attendees'
+        ], 500);
+    }
+}
 }

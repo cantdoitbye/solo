@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\V1\EventReviewController;
 use App\Http\Controllers\Api\V1\HomeScreenController;
 use App\Http\Controllers\Api\V1\MessageBoardController;
 use App\Http\Controllers\Api\V1\MyEventsController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\OneOnOneDateController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\SuggestedLocationsController;
@@ -275,6 +276,15 @@ Route::prefix('dm-requests')->name('dm-requests.')->group(function () {
 
 Route::get('users/{userId}/profile', [DmRequestController::class, 'getUserProfile'])->name('users.profile');
 
+Route::prefix('notifications')->name('notifications.')->group(function () {
+    Route::get('/', [NotificationController::class, 'getUserNotifications'])->name('index');
+    // Route::get('summary', [NotificationController::class, 'getNotificationSummary'])->name('summary');
+    // Route::get('dm-requests', [NotificationController::class, 'getDmRequestNotifications'])->name('dm-requests');
+    Route::put('{notificationId}/mark-read', [NotificationController::class, 'markNotificationAsRead'])->name('mark-read');
+    Route::put('mark-all-read', [NotificationController::class, 'markAllNotificationsAsRead'])->name('mark-all-read');
+    // Route::delete('{notificationId}', [NotificationController::class, 'deleteNotification'])->name('delete');
+});
 
+Route::get('chat/{chatId}/attendees', [ChatController::class, 'getChatAttendees']);
     
 });
