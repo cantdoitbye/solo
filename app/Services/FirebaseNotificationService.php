@@ -66,6 +66,17 @@ class FirebaseNotificationService
     {
         $accessToken = $this->generateAccessToken();
         
+          if ($userId) {
+            $notification = AppNotification::create([
+                'title' => $title,
+                'body' => $body,
+                'type' => $type,
+                'data' => $data,
+                'sent_to_users' => [$userId],
+                'total_sent' => 1,
+                'sent_at' => now(),
+            ]);
+        }
         if (!$accessToken) {
             Log::error('Failed to generate Firebase access token');
             return false;
@@ -82,17 +93,7 @@ class FirebaseNotificationService
 
         // Create notification record if we have user ID
         $notification = null;
-        if ($userId) {
-            $notification = AppNotification::create([
-                'title' => $title,
-                'body' => $body,
-                'type' => $type,
-                'data' => $data,
-                'sent_to_users' => [$userId],
-                'total_sent' => 1,
-                'sent_at' => now(),
-            ]);
-        }
+      
 
         try {
             $message = [
