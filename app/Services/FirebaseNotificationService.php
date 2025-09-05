@@ -253,23 +253,37 @@ class FirebaseNotificationService
         ]));
     }
 
+  
+
     /**
-     * Send visitor notification (similar to your example)
-     */
-    public function sendVisitorNotification($to, $visitorData): bool
-    {
-        $title = "🏠 New Visitor Request";
-        $body = "Visitor {$visitorData['visitor_name']} wants to visit you";
-
-        $data = [
-            'notification_type' => 'visitor_request',
-            'visitor_name' => $visitorData['visitor_name'],
-            'visitor_number' => $visitorData['visitor_number'] ?? '',
-            'reason' => $visitorData['reason'] ?? '',
-        ];
-
-        return $this->sendPushNotification($to, $title, $body, $data, 'visitor');
+ * Send DM request notification with accept/reject buttons
+ */
+public function sendDmRequestNotification(int $dmRequestId, int $senderId, int $receiverId, ?string $message = null): bool
+{
+    $sender = \App\Models\User::find($senderId);
+    $receiver = \App\Models\User::find($receiverId);
+    
+    if (!$sender || !$receiver) {
+        return false;
     }
+    
+    $title = "💬 New DM Request";
+    $messagePreview = $message ? " - \"{$message}\"" : "";
+    $body = "{$sender->name} wants to send you a direct message{$messagePreview}";
+    
+    $data = [
+        'dm_request_id' => (string)$dmRequestId,
+        'sender_id' => (string)$senderId,
+        'sender_name' => $sender->name,
+        'sender_profile_photo' => $sender->profile_photo ?? '',
+        'message' => $message ?? '',
+        'has_action_buttons' => 'true',
+        'accept_action' => 'dm_request_accept',
+        'reject_action' => 'dm_request_reject',
+    ];
+    
+    return $this->sendToUser($title, $body, $receiverId, 'dm_request', $data);
+}
 
     /**
      * Send welcome notification
@@ -305,6 +319,64 @@ class FirebaseNotificationService
         );
     }
 
+
+    
+/**
+ * Send member join notification to event creator
+ */
+public function sendMemberJoinNotification(int $eventId, int $joinedUserId, int $totalMembers = 1): bool
+{
+    $event = \App\Models\Event::with('host')->find($eventId);
+    $joinedUser = \App\Models\User::find($joinedUserId);
+    
+    if (!$event || !$joinedUser || !$event->host) {
+        return false;
+    }
+    
+    $memberText = $totalMembers > 1 ? "with {$totalMembers} members" : "";
+    $title = "🎉 New Member Joined!";
+    $body = "{$joinedUser->name} joined your event \"{$event->name}\" {$memberText}";
+    
+    $data = [
+        'event_id' => (string)$eventId,
+        'joined_user_id' => (string)$joinedUserId,
+        'joined_user_name' => $joinedUser->name,
+        'total_members' => (string)$totalMembers,
+        'event_name' => $event->name,
+        'event_date' => $event->event_date->toDateString(),
+    ];
+    
+    return $this->sendToUser($title, $body, $event->host_id, 'member_join', $data);
+}
+
+
+/**
+ * Send event review notification to event creator
+ */
+public function sendEventReviewNotification(int $eventId, int $reviewerId, int $rating): bool
+{
+    $event = \App\Models\Event::with('host')->find($eventId);
+    $reviewer = \App\Models\User::find($reviewerId);
+    
+    if (!$event || !$reviewer || !$event->host) {
+        return false;
+    }
+    
+    $stars = str_repeat('⭐', $rating);
+    $title = "📝 New Event Review!";
+    $body = "{$reviewer->name} reviewed your event \"{$event->name}\" - {$stars} ({$rating}/5)";
+    
+    $data = [
+        'event_id' => (string)$eventId,
+        'reviewer_id' => (string)$reviewerId,
+        'reviewer_name' => $reviewer->name,
+        'rating' => (string)$rating,
+        'event_name' => $event->name,
+        'event_date' => $event->event_date->toDateString(),
+    ];
+    
+    return $this->sendToUser($title, $body, $event->host_id, 'event_review', $data);
+}
     /**
      * Update user FCM token
      */

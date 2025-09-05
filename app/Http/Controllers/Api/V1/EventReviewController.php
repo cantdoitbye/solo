@@ -85,6 +85,11 @@ class EventReviewController extends Controller
                 'review_text' => $request->review_text,
                 'is_anonymous' => $request->boolean('is_anonymous', false)
             ]);
+            app(\App\Services\FirebaseNotificationService::class)->sendEventReviewNotification(
+    $eventId,
+    $userId,
+    $request->input('rating')
+);
 
             return response()->json([
                 'success' => true,

@@ -58,6 +58,11 @@ class EventJoinService
             // 9. Create attendee record with member data as JSON
             $attendee = $this->createAttendeeRecord($userId, $event, $totalMembers, $costPerMember, $totalCost, $membersData);
             
+            app(\App\Services\FirebaseNotificationService::class)->sendMemberJoinNotification(
+    $eventId, 
+    $userId, 
+    $totalMembers
+);
             // 10. Update user's Olos balance info
             $userOlosSummary = $this->olosService->getUserOlosSummary($userId);
             

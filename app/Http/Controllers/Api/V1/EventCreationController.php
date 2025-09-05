@@ -28,7 +28,6 @@ class EventCreationController extends Controller
             'description' => 'required|string|max:2000',
             'group_size' => 'required|integer|min:2|max:20',
             
-            // Location Reference (using SuggestedLocation)
             'location_id' => 'required|integer|exists:suggested_locations,id',
             
             // Date & Time
@@ -37,10 +36,10 @@ class EventCreationController extends Controller
             'timezone' => 'nullable|string|max:50',
             
             // Gender Balance Settings
-            'gender_balanced' => 'nullable|boolean', // NEW: Gender balanced toggle (always 1:1 ratio)
+            'gender_balanced' => 'nullable|boolean',
             
             // Optional settings
-            'disable_age_restriction' => 'nullable|boolean', // Toggle to remove 8-year age restriction
+            'disable_age_restriction' => 'nullable|boolean',
             'cancellation_policy' => 'nullable|string|max:1000',
         ]);
 

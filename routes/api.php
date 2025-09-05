@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\EventMediaController as ApiEventMediaController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\OnboardingController;
 use App\Http\Controllers\Api\V1\ChatController;
+use App\Http\Controllers\Api\V1\DmRequestController;
 use App\Http\Controllers\Api\V1\EventController as V1EventController;
 use App\Http\Controllers\Api\V1\EventCreationController;
 use App\Http\Controllers\Api\V1\EventDataController as V1EventDataController;
@@ -263,6 +264,17 @@ Route::prefix('account-settings')->name('account-settings.')->middleware('auth:s
 Route::get('test-message-board', function () {
     return response()->json(['message' => 'Message board route working']);
 });
+
+Route::prefix('dm-requests')->name('dm-requests.')->group(function () {
+    Route::post('/', [DmRequestController::class, 'sendDmRequest'])->name('send');
+    Route::post('{dmRequestId}/accept', [DmRequestController::class, 'acceptDmRequest'])->name('accept');
+    Route::post('{dmRequestId}/reject', [DmRequestController::class, 'rejectDmRequest'])->name('reject');
+    Route::get('pending', [DmRequestController::class, 'getPendingDmRequests'])->name('pending');
+    Route::get('sent', [DmRequestController::class, 'getSentDmRequests'])->name('sent');
+});
+
+Route::get('users/{userId}/profile', [DmRequestController::class, 'getUserProfile'])->name('users.profile');
+
 
     
 });

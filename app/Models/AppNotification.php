@@ -32,6 +32,27 @@ class AppNotification extends Model
         'sent_at' => 'datetime',
     ];
 
+    const TYPE_MEMBER_JOIN = 'member_join';
+const TYPE_EVENT_REVIEW = 'event_review';
+const TYPE_WELCOME = 'welcome';
+const TYPE_EVENT_REMINDER = 'event_reminder';
+const TYPE_GENERAL = 'general';
+const TYPE_DM_REQUEST = 'dm_request';
+
+
+
+public static function getNotificationTypes(): array
+{
+    return [
+        self::TYPE_MEMBER_JOIN => 'Member Join',
+        self::TYPE_EVENT_REVIEW => 'Event Review',
+        self::TYPE_DM_REQUEST => 'DM Request',
+        self::TYPE_WELCOME => 'Welcome',
+        self::TYPE_EVENT_REMINDER => 'Event Reminder',
+        self::TYPE_GENERAL => 'General',
+    ];
+}
+
     public function logs(): HasMany
     {
         return $this->hasMany(NotificationLog::class);
