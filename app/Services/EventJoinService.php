@@ -136,7 +136,7 @@ public function joinEvent(int $userId, int $eventId, array $membersData): array
             $this->validateEventCapacity($event, $totalMembers);
             
             // 8. Deduct total Olos cost
-            $olosTransaction = $this->deductEventCost($userId, $event, $totalMembers, $totalCost);
+            // $olosTransaction = $this->deductEventCost($userId, $event, $totalMembers, $totalCost);
             
             // 9. Create attendee record with member data as JSON
             $attendee = $this->createAttendeeRecord($userId, $event, $totalMembers, $costPerMember, $totalCost, $membersData);
