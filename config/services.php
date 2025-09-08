@@ -42,6 +42,9 @@ return [
         'batch_size' => env('FCM_BATCH_SIZE', 100),
         'retry_attempts' => env('FCM_RETRY_ATTEMPTS', 3),
         'timeout' => env('FCM_TIMEOUT', 30),
-    ]
+         ],
+    'google_maps' => [
+        'api_key' => env('GOOGLE_MAPS_API_KEY'),
+    ],
 
 ];

@@ -51,6 +51,9 @@ class User extends Authenticatable
         'selected_theme',
         'default_language',
         'account_settings_updated_at',
+         'status', // New field
+        'blocked_at', // New field
+        'block_reason',
     ];
 
     protected $hidden = [
@@ -75,8 +78,41 @@ class User extends Authenticatable
         'push_notifications_enabled' => 'boolean',
         'sound_alerts_enabled' => 'boolean',
         'account_settings_updated_at' => 'datetime',
+                'blocked_at' => 'datetime',
     ];
 
+       const STATUS_ACTIVE = 'active';
+    const STATUS_BLOCKED = 'blocked';
+    const STATUS_INACTIVE = 'inactive';
+
+
+      public function isActive(): bool
+    {
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function isBlocked(): bool
+    {
+        return $this->status === self::STATUS_BLOCKED;
+    }
+
+    public function block(string $reason = null): bool
+    {
+        return $this->update([
+            'status' => self::STATUS_BLOCKED,
+            'blocked_at' => now(),
+            'block_reason' => $reason,
+        ]);
+    }
+
+    public function unblock(): bool
+    {
+        return $this->update([
+            'status' => self::STATUS_ACTIVE,
+            'blocked_at' => null,
+            'block_reason' => null,
+        ]);
+    }
 //     public function getDobAttribute($value): ?string
 // {
 //     return $value ? \Carbon\Carbon::parse($value)->format('Y-m-d') : null;

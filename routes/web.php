@@ -1,253 +1,86 @@
 <?php
 
+use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\SuggestedLocationController;
+use App\Http\Controllers\Admin\BannerController;
+use App\Http\Controllers\Admin\EventController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\{
-    AuthController,
-    DashboardController,
-    SellerController,
-    BuyerController,
-    CourierController
-};
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
-
-Route::get('/', function () {
-    return redirect()->route('admin.dashboard');
-});
-
-/*
-|--------------------------------------------------------------------------
-| Admin Routes
-|--------------------------------------------------------------------------
-*/
-
+// Admin authentication routes (no middleware)
 Route::prefix('admin')->name('admin.')->group(function () {
-    
-    // Authentication routes (if using custom admin authentication)
     Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
     Route::post('login', [AuthController::class, 'login']);
     Route::post('logout', [AuthController::class, 'logout'])->name('logout');
-    
-    // Protected Admin Routes
-    Route::middleware(['auth:admin'])->group(function () {
-        
-        // Dashboard
-        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        Route::get('/', [DashboardController::class, 'index']);
-        
-        // Sellers Management
-        Route::prefix('sellers')->name('sellers.')->group(function () {
-            Route::get('/', [SellerController::class, 'index'])->name('index');
-            Route::get('create', [SellerController::class, 'create'])->name('create');
-            Route::post('/', [SellerController::class, 'store'])->name('store');
-            Route::get('{id}', [SellerController::class, 'show'])->name('show');
-            Route::get('{id}/edit', [SellerController::class, 'edit'])->name('edit');
-            Route::put('{id}', [SellerController::class, 'update'])->name('update');
-            Route::delete('{id}', [SellerController::class, 'destroy'])->name('destroy');
-            
-            // Additional seller routes
-            Route::patch('{id}/status', [SellerController::class, 'updateStatus'])->name('update-status');
-            Route::post('bulk-action', [SellerController::class, 'bulkAction'])->name('bulk-action');
-            Route::get('export', [SellerController::class, 'export'])->name('export');
-            Route::get('by-tea-grade', [SellerController::class, 'getByTeaGrade'])->name('by-tea-grade');
-        });
-        
-        // Buyers Management
-        Route::prefix('buyers')->name('buyers.')->group(function () {
-            Route::get('/', [BuyerController::class, 'index'])->name('index');
-            Route::get('create', [BuyerController::class, 'create'])->name('create');
-            Route::post('/', [BuyerController::class, 'store'])->name('store');
-            Route::get('{id}', [BuyerController::class, 'show'])->name('show');
-            Route::get('{id}/edit', [BuyerController::class, 'edit'])->name('edit');
-            Route::put('{id}', [BuyerController::class, 'update'])->name('update');
-            Route::delete('{id}', [BuyerController::class, 'destroy'])->name('destroy');
-            
-            // Additional buyer routes
-            Route::patch('{id}/status', [BuyerController::class, 'updateStatus'])->name('update-status');
-            Route::post('bulk-action', [BuyerController::class, 'bulkAction'])->name('bulk-action');
-            Route::get('export', [BuyerController::class, 'export'])->name('export');
-            Route::get('by-type', [BuyerController::class, 'getByType'])->name('by-type');
-            Route::get('by-tea-grade', [BuyerController::class, 'getByTeaGrade'])->name('by-tea-grade');
-        });
-        
-        // Courier Services Management
-        Route::prefix('couriers')->name('couriers.')->group(function () {
-            Route::get('/', [CourierController::class, 'index'])->name('index');
-            Route::get('create', [CourierController::class, 'create'])->name('create');
-            Route::post('/', [CourierController::class, 'store'])->name('store');
-            Route::get('{id}', [CourierController::class, 'show'])->name('show');
-            Route::get('{id}/edit', [CourierController::class, 'edit'])->name('edit');
-            Route::put('{id}', [CourierController::class, 'update'])->name('update');
-            Route::delete('{id}', [CourierController::class, 'destroy'])->name('destroy');
-            
-            // Additional courier routes
-            Route::patch('{id}/status', [CourierController::class, 'updateStatus'])->name('update-status');
-            Route::post('{id}/test-api', [CourierController::class, 'testApi'])->name('test-api');
-            Route::post('bulk-action', [CourierController::class, 'bulkAction'])->name('bulk-action');
-            Route::get('export', [CourierController::class, 'export'])->name('export');
-            Route::get('by-service-area', [CourierController::class, 'getByServiceArea'])->name('by-service-area');
-            Route::post('{id}/tracking-url', [CourierController::class, 'generateTrackingUrl'])->name('tracking-url');
-        });
-        
-        // Logistic Companies (Future implementation)
-        Route::prefix('logistics')->name('logistics.')->group(function () {
-            Route::get('/', function () {
-                return view('admin.coming-soon', ['title' => 'Logistic Companies']);
-            })->name('index');
-        });
-        
-        // Contract Management (Future implementation)
-        Route::prefix('contracts')->name('contracts.')->group(function () {
-            Route::get('/', function () {
-                return view('admin.coming-soon', ['title' => 'Contract Management']);
-            })->name('index');
-        });
-        
-        // Sample Management (Future implementation)
-        Route::prefix('samples')->name('samples.')->group(function () {
-            Route::get('/', function () {
-                return view('admin.coming-soon', ['title' => 'Sample Management']);
-            })->name('index');
-            
-            Route::get('receiving', function () {
-                return view('admin.coming-soon', ['title' => 'Sample Receiving']);
-            })->name('receiving');
-            
-            Route::get('evaluation', function () {
-                return view('admin.coming-soon', ['title' => 'Sample Evaluation']);
-            })->name('evaluation');
-            
-            Route::get('assignment', function () {
-                return view('admin.coming-soon', ['title' => 'Buyer Assignment']);
-            })->name('assignment');
-        });
-        
-        // Dispatch Management (Future implementation)
-        Route::prefix('dispatch')->name('dispatch.')->group(function () {
-            Route::get('/', function () {
-                return view('admin.coming-soon', ['title' => 'Dispatch Management']);
-            })->name('index');
-            
-            Route::get('samples', function () {
-                return view('admin.coming-soon', ['title' => 'Sample Dispatch']);
-            })->name('samples');
-            
-            Route::get('feedback', function () {
-                return view('admin.coming-soon', ['title' => 'Buyer Feedback']);
-            })->name('feedback');
-            
-            Route::get('advice', function () {
-                return view('admin.coming-soon', ['title' => 'Dispatch Advice']);
-            })->name('advice');
-        });
-        
-        // Reports (Future implementation)
-        Route::prefix('reports')->name('reports.')->group(function () {
-            Route::get('/', function () {
-                return view('admin.coming-soon', ['title' => 'Reports']);
-            })->name('index');
-            
-            Route::get('sales', function () {
-                return view('admin.coming-soon', ['title' => 'Sales Reports']);
-            })->name('sales');
-            
-            Route::get('commission', function () {
-                return view('admin.coming-soon', ['title' => 'Commission Reports']);
-            })->name('commission');
-        });
-        
-        // Settings
-        Route::prefix('settings')->name('settings.')->group(function () {
-            Route::get('/', function () {
-                return view('admin.coming-soon', ['title' => 'Settings']);
-            })->name('index');
-        });
-        
-    });
 });
 
-/*
-|--------------------------------------------------------------------------
-| API Routes for AJAX calls
-|--------------------------------------------------------------------------
-*/
-
-Route::prefix('api/admin')->name('api.admin.')->middleware(['auth:admin'])->group(function () {
+// Protected admin routes
+Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(function () {
     
-    // Sellers API
-    Route::prefix('sellers')->name('sellers.')->group(function () {
-        Route::get('search', [SellerController::class, 'search'])->name('search');
-        Route::get('select-options', [SellerController::class, 'getForSelect'])->name('select-options');
+    // Dashboard
+    Route::get('/', [AuthController::class, 'dashboard'])->name('dashboard');
+    Route::get('dashboard', [AuthController::class, 'dashboard']);
+    
+    // Users Management
+    Route::prefix('users')->name('users.')->group(function () {
+        Route::get('/', [UserController::class, 'index'])->name('index');
+        Route::get('{id}', [UserController::class, 'show'])->name('show');
+        Route::post('{id}/toggle-status', [UserController::class, 'toggleStatus'])->name('toggle-status');
+        Route::delete('{id}', [UserController::class, 'destroy'])->name('destroy');
+        Route::post('{id}/restore', [UserController::class, 'restore'])->name('restore');
     });
     
-    // Buyers API
-    Route::prefix('buyers')->name('buyers.')->group(function () {
-        Route::get('search', [BuyerController::class, 'search'])->name('search');
-        Route::get('select-options', [BuyerController::class, 'getForSelect'])->name('select-options');
+    // Suggested Locations Management
+    Route::prefix('locations')->name('locations.')->group(function () {
+        Route::get('/', [SuggestedLocationController::class, 'index'])->name('index');
+        Route::get('create', [SuggestedLocationController::class, 'create'])->name('create');
+        Route::post('/', [SuggestedLocationController::class, 'store'])->name('store');
+        Route::get('{id}', [SuggestedLocationController::class, 'show'])->name('show');
+        Route::get('{id}/edit', [SuggestedLocationController::class, 'edit'])->name('edit');
+        Route::put('{id}', [SuggestedLocationController::class, 'update'])->name('update');
+        Route::delete('{id}', [SuggestedLocationController::class, 'destroy'])->name('destroy');
+        Route::delete('{locationId}/images/{imageId}', [SuggestedLocationController::class, 'deleteImage'])->name('delete-image');
+        Route::post('{locationId}/images/{imageId}/primary', [SuggestedLocationController::class, 'setPrimaryImage'])->name('set-primary-image');
     });
     
-    // Couriers API
-    Route::prefix('couriers')->name('couriers.')->group(function () {
-        Route::get('search', [CourierController::class, 'search'])->name('search');
-        Route::get('select-options', [CourierController::class, 'getForSelect'])->name('select-options');
+    // Banners Management
+    Route::prefix('banners')->name('banners.')->group(function () {
+        Route::get('/', [BannerController::class, 'index'])->name('index');
+        Route::get('create', [BannerController::class, 'create'])->name('create');
+        Route::post('/', [BannerController::class, 'store'])->name('store');
+        Route::get('{id}', [BannerController::class, 'show'])->name('show');
+        Route::get('{id}/edit', [BannerController::class, 'edit'])->name('edit');
+        Route::put('{id}', [BannerController::class, 'update'])->name('update');
+        Route::delete('{id}', [BannerController::class, 'destroy'])->name('destroy');
+        Route::post('{id}/toggle-status', [BannerController::class, 'toggleStatus'])->name('toggle-status');
     });
     
+    // Events Management
+    Route::prefix('events')->name('events.')->group(function () {
+        Route::get('/', [EventController::class, 'index'])->name('index');
+        Route::get('{id}', [EventController::class, 'show'])->name('show');
+        Route::post('{id}/update-status', [EventController::class, 'updateStatus'])->name('update-status');
+        Route::delete('{id}', [EventController::class, 'destroy'])->name('destroy');
+        Route::post('bulk-action', [EventController::class, 'bulkAction'])->name('bulk-action');
+        Route::get('{id}/attendees', [EventController::class, 'attendees'])->name('attendees');
+    });
+
+
+    Route::get('/test-google-maps', function() {
+    $apiKey = config('services.google_maps.api_key');
+    
+    return response()->json([
+        'api_key_configured' => !empty($apiKey),
+        'api_key_length' => strlen($apiKey ?? ''),
+        'api_key_starts_with' => substr($apiKey ?? '', 0, 10) . '...',
+        'env_google_maps_key' => !empty(env('GOOGLE_MAPS_API_KEY')),
+        'config_cache_cleared' => 'Run: php artisan config:clear',
+    ]);
 });
 
-/*
-|--------------------------------------------------------------------------
-| Fallback Route
-|--------------------------------------------------------------------------
-*/
-
-Route::fallback(function () {
-    return view('errors.404');
-});
-
-Route::get('/test-pusher', function () {
-    try {
-        // Method 1: Using Pusher directly
-        $pusher = new \Pusher\Pusher(
-            env('PUSHER_APP_KEY'),
-            env('PUSHER_APP_SECRET'),
-            env('PUSHER_APP_ID'),
-            [
-                'cluster' => env('PUSHER_APP_CLUSTER'),
-                'useTLS' => true,
-            ]
-        );
-
-        $data = ['message' => 'Hello from Abhishek!'];
-        $pusher->trigger('chat-room-1', 'test-event', $data);
-
-        return 'Event sent via Pusher directly!';
-        
-    } catch (\Exception $e) {
-        return 'Error: ' . $e->getMessage();
-    }
-});
-
-
-Route::get('/test-message-sent', function () {
-    try {
-        // Get a test message and chat room
-        $message = \App\Models\Message::with('sender')->first();
-        $chatRoom = \App\Models\ChatRoom::first();
-        
-        if (!$message || !$chatRoom) {
-            return 'No message or chat room found. Create some test data first.';
-        }
-        
-        // Manually trigger the MessageSent event
-        broadcast(new \App\Events\MessageSent($message, $chatRoom));
-        
-        return 'MessageSent event broadcasted!';
-        
-    } catch (\Exception $e) {
-        return 'Error: ' . $e->getMessage();
-    }
+// routes/web.php
+Route::get('/google-maps-test', function() {
+    return view('admin.test.google-maps');
+})->middleware('admin.auth');
+    
 });

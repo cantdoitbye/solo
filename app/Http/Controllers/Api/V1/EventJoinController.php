@@ -86,6 +86,9 @@ class EventJoinController extends Controller
                 ->where('user_id', $userId)
                 ->first();
 
+                $eventData = $event->toArray();
+$attendeeInfo = $this->getAttendeeInfo($eventData);
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -136,6 +139,7 @@ class EventJoinController extends Controller
                         'gender_composition' => $event->gender_composition,
                         'allowed_genders' => $event->allowed_genders,
                     ],
+                    'attendees' => $attendeeInfo,
                     
                     // Cost and capacity (UPDATED with gender balance)
                     'pricing' => [
@@ -185,6 +189,134 @@ class EventJoinController extends Controller
             'message' => 'Failed to fetch event details'
         ], 500);
     }
+}
+
+/**
+ * Get attendee information using the same logic as HomeScreenService
+ */
+private function getAttendeeInfo(array $eventData): array
+{
+    // Calculate actual attendees including host
+    $currentAttendees = $this->calculateActualAttendees($eventData);
+    $maxGroupSize = $eventData['max_group_size'] ?? $eventData['min_group_size'] ?? 0;
+    $availableSpots = max(0, $maxGroupSize - $currentAttendees);
+    
+    $baseInfo = [
+        'current_count' => $currentAttendees, // Includes host + members
+        'group_size' => $eventData['min_group_size'],
+        'available_spots' => $availableSpots,
+        'spots_text' => $availableSpots > 0 ? "{$availableSpots} spots left" : "Full",
+        'profiles' => []
+    ];
+
+    // Format profiles with host first, then members
+    if (isset($eventData['attendees']) && is_array($eventData['attendees'])) {
+        $baseInfo['profiles'] = $this->formatAttendeeProfiles($eventData['attendees'], $eventData);
+    } else {
+        // If no attendees data, still show the host
+        if (isset($eventData['host'])) {
+            $host = $eventData['host'];
+            $baseInfo['profiles'] = [[
+                'id' => $host['id'],
+                'name' => $host['name'],
+                'profile_photo' => $host['profile_photo'] ?? null,
+                'is_host' => true
+            ]];
+        }
+    }
+
+    return $baseInfo;
+}
+
+/**
+ * Calculate actual attendees including event host
+ */
+private function calculateActualAttendees(array $eventData): int
+{
+    $totalMembers = 0;
+    
+    // Add 1 for the event host (host is always counted as an attendee)
+    $totalMembers += 1;
+    
+    // If attendees data is loaded with the event
+    if (isset($eventData['attendees']) && is_array($eventData['attendees'])) {
+        foreach ($eventData['attendees'] as $attendee) {
+            $attendeeData = is_array($attendee) ? $attendee : $attendee->toArray();
+            
+            // Only count active attendees (interested or confirmed)
+            $status = $attendeeData['status'] ?? 'interested';
+            if (in_array($status, ['interested', 'confirmed'])) {
+                $totalMembers += $attendeeData['total_members'] ?? 1;
+            }
+        }
+        
+        return $totalMembers;
+    }
+    
+    // Fallback: host + attendees_count if attendees array not loaded (legacy)
+    return 1 + ($eventData['attendees_count'] ?? 0);
+}
+
+/**
+ * Format attendee profiles showing host first, then all members from members_data
+ */
+private function formatAttendeeProfiles(array $attendees, array $eventData): array
+{
+    $profiles = [];
+    
+    // FIRST: Add the event host as the first profile
+    if (isset($eventData['host'])) {
+        $host = $eventData['host'];
+        $profiles[] = [
+            'id' => $host['id'],
+            'name' => $host['name'],
+            'profile_photo' => $host['profile_photo'] ?? null,
+            'is_host' => true
+        ];
+    }
+    
+    // THEN: Add all members from members_data
+    foreach ($attendees as $attendee) {
+        $attendeeData = is_array($attendee) ? $attendee : $attendee->toArray();
+        
+        // Only include active attendees (interested or confirmed)
+        $status = $attendeeData['status'] ?? 'interested';
+        if (!in_array($status, ['interested', 'confirmed'])) {
+            continue;
+        }
+        
+        // Get members_data JSON
+        $membersData = $attendeeData['members_data'] ?? [];
+        
+        // Extract individual members from the JSON data
+        if (is_array($membersData) && !empty($membersData)) {
+            foreach ($membersData as $member) {
+                if (isset($member['member_name']) && !empty(trim($member['member_name']))) {
+                    $profiles[] = [
+                        'id' => null,
+                        'name' => $member['member_name'],
+                        'profile_photo' => null,
+                        'is_host' => false
+                    ];
+                }
+            }
+        }
+        // Handle legacy data without members_data
+        else {
+            $totalMembers = $attendeeData['total_members'] ?? 1;
+            
+            for ($i = 0; $i < $totalMembers; $i++) {
+                $profiles[] = [
+                    'id' => null,
+                    'name' => 'Member ' . ($i + 1),
+                    'profile_photo' => null,
+                    'is_host' => false
+                ];
+            }
+        }
+    }
+    
+    return $profiles;
 }
 
 /**
