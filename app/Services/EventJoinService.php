@@ -185,11 +185,11 @@ public function joinEvent(int $userId, int $eventId, array $membersData): array
                 'tokens_paid' => $attendee->tokens_paid, // Legacy field, same as total_cost
                 'joined_at' => $attendee->joined_at->toISOString(),
                 'members' => $membersData, // Return the member data directly
-                'olos_balance' => [
-                    'current_balance' => $userOlosSummary['current_balance'],
-                    'tokens_spent' => $totalCost,
-                    'transaction_id' => $olosTransaction->id,
-                ],
+                // 'olos_balance' => [
+                //     'current_balance' => $userOlosSummary['current_balance'],
+                //     'tokens_spent' => $totalCost,
+                //     // 'transaction_id' => $olosTransaction->id,
+                // ],
                 'event_details' => [
                     'name' => $event->name,
                     'event_date' => $event->event_date->toDateString(),
