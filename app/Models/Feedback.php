@@ -24,9 +24,12 @@ class Feedback extends Model
         return $this->belongsTo(User::class);
     }
 
-    // Accessors
+   // Accessors
     public function getUserNameAttribute(): string
     {
-        return $this->user ? $this->user->name : 'Guest User';
+        if ($this->user && $this->user->name) {
+            return $this->user->name;
+        }
+        return 'Guest User';
     }
 }

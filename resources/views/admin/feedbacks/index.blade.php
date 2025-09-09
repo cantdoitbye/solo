@@ -3,7 +3,7 @@
 @extends('admin.layouts.app')
 
 @section('title', 'Feedbacks')
-@section('subtitle', 'User feedback and suggestions')
+@section('page-title', 'User feedbacks')
 
 @section('content')
 <div class="row">
@@ -42,10 +42,10 @@
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <a href="{{ route('admin.feedbacks.show', $feedback->id) }}" 
+                                                {{-- <a href="{{ route('admin.feedbacks.show', $feedback->id) }}" 
                                                    class="btn btn-outline-primary btn-sm">
                                                     <i class="fas fa-eye"></i> View
-                                                </a>
+                                                </a> --}}
                                                 <form method="POST" 
                                                       action="{{ route('admin.feedbacks.destroy', $feedback->id) }}" 
                                                       style="display: inline-block;"
