@@ -232,7 +232,7 @@
                                 @endif
                                 
                                 @if(in_array($event->status, ['published', 'pending']))
-                                    <button type="button" 
+                                    {{-- <button type="button" 
                                             class="btn btn-outline-warning" 
                                             data-bs-toggle="modal" 
                                             data-bs-target="#cancelEventModal"
@@ -240,7 +240,7 @@
                                             data-event-name="{{ $event->name }}"
                                             title="Cancel Event">
                                         <i class="fas fa-ban"></i>
-                                    </button>
+                                    </button> --}}
                                 @endif
                                 
                                 @if($event->attendees_count == 0)
