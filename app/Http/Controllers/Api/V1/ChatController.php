@@ -30,12 +30,21 @@ class ChatController extends Controller
         try {
             $chatRooms = $this->chatService->getUserChatRooms($request->user()->id);
 
+               $personalChats = array_filter($chatRooms, fn($room) => $room['type'] === 'personal');
+        $groupChats = array_filter($chatRooms, fn($room) => $room['type'] === 'event_group');
+
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'personal_chats' => array_filter($chatRooms, fn($room) => $room['type'] === 'personal'),
-                    'group_chats' => array_filter($chatRooms, fn($room) => $room['type'] === 'event_group'),
-                    'total_chats' => count($chatRooms)
+                    // 'personal_chats' => array_filter($chatRooms, fn($room) => $room['type'] === 'personal'),
+                    // 'group_chats' => array_filter($chatRooms, fn($room) => $room['type'] === 'event_group'),
+                    // 'total_chats' => count($chatRooms)
+
+                      'personal_chats' => array_values($personalChats), // Re-index array
+                'group_chats' => array_values($groupChats), // Re-index array
+                'total_personal_chats' => count($personalChats),
+                'total_group_chats' => count($groupChats),
+                'total_chats' => count($chatRooms)
                 ]
             ]);
         } catch (\Exception $e) {

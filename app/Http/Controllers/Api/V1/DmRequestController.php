@@ -153,6 +153,8 @@ class DmRequestController extends Controller
                 $dmRequest->receiver_id
             );
 
+            $this->updateDmRequestNotificationData($dmRequestId, 'accepted', $chatRoom->id);
+
             DB::commit();
 
             return response()->json([
@@ -198,6 +200,7 @@ class DmRequestController extends Controller
 
             // Reject the request
             $dmRequest->reject();
+        $this->updateDmRequestNotificationData($dmRequestId, 'rejected');
 
             return response()->json([
                 'success' => true,
@@ -415,4 +418,55 @@ class DmRequestController extends Controller
             ]
         ]);
     }
+
+
+    /**
+ * Update DM request notification data to mark as responded
+ * 
+ * @param int $dmRequestId
+ * @param string $response ('accepted' or 'rejected')
+ * @param int|null $chatRoomId
+ */
+private function updateDmRequestNotificationData(int $dmRequestId, string $response, int $chatRoomId = null): void
+{
+    try {
+        // Find the notification with this dm_request_id in the data
+        $notification = \App\Models\AppNotification::where('type', 'dm_request')
+            ->whereJsonContains('data->dm_request_id', (string)$dmRequestId)
+            ->first();
+
+        if ($notification) {
+            $data = $notification->data;
+            
+            // Add response information to the data
+            $data['is_responded'] = true;
+            $data['response'] = $response;
+            $data['responded_at'] = now()->toISOString();
+            
+            // If accepted, add chat room ID
+            if ($response === 'accepted' && $chatRoomId) {
+                $data['chat_room_id'] = (string)$chatRoomId;
+            }
+            
+            // Remove action buttons since it's been responded to
+            $data['has_action_buttons'] = 'false';
+            unset($data['accept_action'], $data['reject_action']);
+
+            // Update the notification
+            $notification->update(['data' => $data]);
+
+            \Log::info('DM request notification data updated', [
+                'dm_request_id' => $dmRequestId,
+                'notification_id' => $notification->id,
+                'response' => $response
+            ]);
+        }
+    } catch (\Exception $e) {
+        \Log::error('Failed to update DM request notification data', [
+            'dm_request_id' => $dmRequestId,
+            'response' => $response,
+            'error' => $e->getMessage()
+        ]);
+    }
+}
 }

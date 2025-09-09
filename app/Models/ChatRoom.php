@@ -180,4 +180,55 @@ public function members()
     {
         $this->update(['last_message_at' => now()]);
     }
+
+    /**
+ * Get the other user in a personal chat (excluding the given user)
+ * 
+ * @param int $currentUserId
+ * @return User|null
+ */
+public function getOtherUser(int $currentUserId): ?User
+{
+    if ($this->type !== self::TYPE_PERSONAL) {
+        return null;
+    }
+
+    return $this->members()
+        ->where('user_id', '!=', $currentUserId)
+        ->where('chat_room_members.is_active', true)
+        ->first();
+}
+
+/**
+ * Get the other user with their chat member data (pivot data)
+ * 
+ * @param int $currentUserId
+ * @return User|null
+ */
+public function getOtherUserWithMemberData(int $currentUserId): ?User
+{
+    if ($this->type !== self::TYPE_PERSONAL) {
+        return null;
+    }
+
+    return $this->members()
+        ->where('user_id', '!=', $currentUserId)
+        ->where('chat_room_members.is_active', true)
+        ->withPivot(['is_online', 'last_seen_at', 'last_read_at'])
+        ->first();
+}
+
+/**
+ * Check if a personal chat has both users active
+ * 
+ * @return bool
+ */
+public function hasActiveMembersForPersonalChat(): bool
+{
+    if ($this->type !== self::TYPE_PERSONAL) {
+        return false;
+    }
+
+    return $this->activeMembers()->count() >= 2;
+}
 }
