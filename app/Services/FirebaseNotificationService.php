@@ -355,6 +355,30 @@ public function sendMemberJoinNotification(int $eventId, int $joinedUserId, int 
 
 
 /**
+ * Send event approval notification to event creator
+ */
+public function sendEventApprovalNotification(int $eventId): bool
+{
+    $event = \App\Models\Event::with('host')->find($eventId);
+    
+    if (!$event || !$event->host) {
+        return false;
+    }
+    
+    $title = "🎉 Event Approved!";
+    $body = "Your event \"{$event->name}\" has been approved and is now live!";
+    
+    $data = [
+        'event_id' => (string)$eventId,
+        'event_name' => $event->name,
+        'event_date' => $event->event_date ? $event->event_date->toDateString() : null,
+        'approved_at' => now()->toISOString(),
+        'action' => 'view_event'
+    ];
+    
+    return $this->sendToUser($title, $body, $event->host_id, 'event_approved', $data);
+}
+/**
  * Send event review notification to event creator
  */
 public function sendEventReviewNotification(int $eventId, int $reviewerId, int $rating): bool

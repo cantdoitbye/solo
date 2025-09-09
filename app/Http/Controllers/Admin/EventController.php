@@ -91,7 +91,7 @@ class EventController extends Controller
         $event = Event::findOrFail($id);
         
         $request->validate([
-            'status' => 'required|in:draft,pending,published,rejected,cancelled',
+            'status' => 'required|in:published,rejected',
             'admin_notes' => 'nullable|string|max:1000',
             'rejection_reason' => 'required_if:status,rejected|max:500',
         ]);
@@ -101,20 +101,24 @@ class EventController extends Controller
 
         $event->update([
             'status' => $newStatus,
-            'admin_notes' => $request->admin_notes,
+            // 'is_approved' => true,
+            'notes' => $request->admin_notes,
             'rejection_reason' => $request->rejection_reason,
-            'reviewed_at' => now(),
-            'reviewed_by' => auth('admin')->id(),
+            // 'reviewed_by' => auth('admin')->id(),
         ]);
 
         // If event is being published, set published_at timestamp
         if ($newStatus === 'published' && $oldStatus !== 'published') {
-            $event->update(['published_at' => now()]);
+            $event->update(['is_approved' => true,'approved_at' => now(), 'published_at' => now(), 'approved_by' => auth('admin')->id()]);
+            
+             app(\App\Services\FirebaseNotificationService::class)->sendEventApprovalNotification(
+    $event->id
+);
         }
 
         // If event is being cancelled, handle attendee refunds/notifications
-        if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
-            $event->update(['cancelled_at' => now()]);
+        if ($newStatus === 'rejected' && $oldStatus !== 'rejected') {
+            $event->update(['is_approved' => false,'cancelled_at' => now()]);
             // Here you can add logic to handle refunds and notifications
         }
 
