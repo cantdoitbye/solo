@@ -454,7 +454,7 @@
             const eventName = button.getAttribute('data-event-name');
             
             document.getElementById('cancelEventName').textContent = eventName;
-            document.getElementById('cancelEventForm').action = `/admin/events/${eventId}/update-status`;
+            document.getElementById('cancelEventForm').action = `/public/admin/events/${eventId}/update-status`;
         });
 
         // Bulk actions
