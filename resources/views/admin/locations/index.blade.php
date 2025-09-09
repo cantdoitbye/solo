@@ -89,7 +89,7 @@
                             <div class="d-flex align-items-center">
                                 <div class="me-3">
                                     @if($location->primaryImage)
-                                        <img src="{{ asset('storage/' . $location->primaryImage->image_path) }}" 
+                                        <img src="{{ asset('/' . $location->primaryImage->image_path) }}" 
                                              alt="{{ $location->name }}"
                                              class="rounded" 
                                              style="width: 60px; height: 45px; object-fit: cover;">

@@ -144,7 +144,7 @@
                             <div class="d-flex align-items-center">
                                 <div class="me-3">
                                     @if($event->suggestedLocation && $event->suggestedLocation->primaryImage)
-                                        <img src="{{ asset('storage/' . $event->suggestedLocation->primaryImage->image_path) }}" 
+                                        <img src="{{ asset('/' . $event->suggestedLocation->primaryImage->image_path) }}" 
                                              alt="{{ $event->name }}"
                                              class="rounded" 
                                              style="width: 50px; height: 35px; object-fit: cover;">
