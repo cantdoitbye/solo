@@ -25,20 +25,24 @@ class NotificationController extends Controller
         ]);
 
         $userId = $request->user()->id;
+
+        $arrUserID[] = $userId;
         $perPage = $request->input('per_page', 20);
         $page = $request->input('page', 1);
 
         // Get notification logs for this user with related notification data
-        $query = NotificationLog::with(['appNotification'])
-            ->where('user_id', $userId)
+        // $query = NotificationLog::with(['appNotification'])
+        //     ->where('user_id', $userId)
+        //     ->orderBy('sent_at', 'desc');
+            $query = AppNotification::whereIn('sent_to_users', $arrUserID)
             ->orderBy('sent_at', 'desc');
 
         // Filter by notification type
-        if ($request->has('type')) {
-            $query->whereHas('appNotification', function ($q) use ($request) {
-                $q->where('type', $request->input('type'));
-            });
-        }
+        // if ($request->has('type')) {
+        //     $query->whereHas('appNotification', function ($q) use ($request) {
+        //         $q->where('type', $request->input('type'));
+        //     });
+        // }
 
         // Filter by status
         if ($request->has('status')) {
@@ -56,7 +60,7 @@ class NotificationController extends Controller
             'success' => true,
             'data' => [
                 'notifications' => collect($notifications->items())->map(function ($log) {
-                    $notification = $log->appNotification;
+                    $notification = $log;
                     return [
                         'id' => $notification->id,
                         'title' => $notification->title,
