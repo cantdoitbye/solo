@@ -434,7 +434,7 @@
             const eventName = button.getAttribute('data-event-name');
             
             document.getElementById('approveEventName').textContent = eventName;
-            document.getElementById('approveEventForm').action = `/admin/events/${eventId}/update-status`;
+            document.getElementById('approveEventForm').action = `/public/admin/events/${eventId}/update-status`;
         });
 
         // Reject event modal
@@ -444,7 +444,7 @@
             const eventName = button.getAttribute('data-event-name');
             
             document.getElementById('rejectEventName').textContent = eventName;
-            document.getElementById('rejectEventForm').action = `/admin/events/${eventId}/update-status`;
+            document.getElementById('rejectEventForm').action = `/public/admin/events/${eventId}/update-status`;
         });
 
         // Cancel event modal
