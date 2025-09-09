@@ -135,9 +135,7 @@
                         </form>
                         
                         <div class="text-center mt-4">
-                            <small class="text-muted">
-                                Admin credentials: admin@example.com / Admin#0987
-                            </small>
+                           
                         </div>
                     </div>
                 </div>

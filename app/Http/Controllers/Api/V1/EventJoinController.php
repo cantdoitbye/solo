@@ -373,7 +373,6 @@ private function getAgeRangeDisplay($event): string
 
 
     /**
-     * Join an event with multiple members (single API endpoint)
      * POST /api/v1/events/{eventId}/join
      */
     public function joinEvent(Request $request, int $eventId)
