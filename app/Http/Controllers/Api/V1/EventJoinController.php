@@ -52,7 +52,7 @@ class EventJoinController extends Controller
 
         // Check if event is available for joining
         $isJoinable = $event->status === 'published' && 
-                     $event->event_date->isFuture() && 
+                     !$event->event_date->isPast() && 
                      $event->host_id !== $userId;
 
         // Check if user already joined
@@ -169,7 +169,7 @@ $attendeeInfo = $this->getAttendeeInfo($eventData);
                     'is_reviewed' => $existingReview? true : false,
                     'attendance_status' => $userAttendance?->status,
                     'joined_members_count' => $userAttendance?->total_members ?? 0,
-                    'olos_balance' => $userOlosBalance,
+                    // 'olos_balance' => $userOlosBalance,
                     'can_afford_one_member' => $userOlosBalance >= 5.00, // Fixed at 5 olos
                     'max_affordable_members' => floor($userOlosBalance / 5.00),
                 ],
