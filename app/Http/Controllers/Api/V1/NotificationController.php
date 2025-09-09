@@ -31,11 +31,14 @@ class NotificationController extends Controller
         $page = $request->input('page', 1);
 
         // Get notification logs for this user with related notification data
-        // $query = NotificationLog::with(['appNotification'])
-        //     ->where('user_id', $userId)
-        //     ->orderBy('sent_at', 'desc');
-            $query = AppNotification::whereIn('sent_to_users', $arrUserID)
+        $query = NotificationLog::with(['appNotification'])
+            ->where('user_id', $userId)
             ->orderBy('sent_at', 'desc');
+          
+
+    //         AppNotification::whereJsonContains('sent_to_users', $userId)
+    // ->whereNotNull('sent_at')
+    // ->orderBy('sent_at', 'desc');
 
         // Filter by notification type
         // if ($request->has('type')) {
@@ -60,7 +63,7 @@ class NotificationController extends Controller
             'success' => true,
             'data' => [
                 'notifications' => collect($notifications->items())->map(function ($log) {
-                    $notification = $log;
+                    $notification = $log->appNotification;
                     return [
                         'id' => $notification->id,
                         'title' => $notification->title,

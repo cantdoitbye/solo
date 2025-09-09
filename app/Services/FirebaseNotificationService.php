@@ -74,6 +74,7 @@ class FirebaseNotificationService
             // Handle both User model and direct FCM token
         $fcmToken = is_string($to) ? $to : $to->fcm_token;
         $userId = is_string($to) ? null : $to->id;
+        $notification = null;
           if ($userId) {
             $notification = AppNotification::create([
                 'title' => $title,
@@ -94,8 +95,7 @@ class FirebaseNotificationService
             return false;
         }
 
-        // Create notification record if we have user ID
-        $notification = null;
+      
       
 
         try {
