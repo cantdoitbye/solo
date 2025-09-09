@@ -109,6 +109,8 @@ class EventCreationService
                 // 'notes' => '',
                 // 'published_at' => now(),
                 // 'cancelled_at' => null,
+                'status' => 'draft',
+                'is_approved' => false, // Needs admin approval
                 'current_step' => 'completed', // All steps done in one API
                 'step_completed_at' => json_encode([
                     'basic_info' => now()->toISOString(),

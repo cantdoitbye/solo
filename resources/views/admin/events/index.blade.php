@@ -210,7 +210,7 @@
                                     <i class="fas fa-eye"></i>
                                 </a>
                                 
-                                @if($event->status === 'pending')
+                                @if($event->status === 'draft' || $event->status === 'completed')
                                     <button type="button" 
                                             class="btn btn-outline-success" 
                                             data-bs-toggle="modal" 
