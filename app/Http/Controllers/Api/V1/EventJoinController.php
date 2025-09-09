@@ -52,7 +52,6 @@ class EventJoinController extends Controller
 
         // Check if event is available for joining
         $isJoinable = $event->status === 'published' && 
-                     !$event->event_date->isPast() && 
                      $event->host_id !== $userId;
 
         // Check if user already joined
