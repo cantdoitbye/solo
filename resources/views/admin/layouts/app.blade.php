@@ -277,6 +277,14 @@
                             <i class="fas fa-calendar-check me-2"></i>Events
                         </a>
                     </li>
+
+                     <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('admin.feedbacks.*') ? 'active' : '' }}" 
+                           href="{{ route('admin.feedbacks.index') }}">
+                            <i class="fas fa-calendar-check me-2"></i>Feedbacks
+                        </a>
+                    </li>
+                 
                     <li class="nav-item mt-4">
                         <form action="{{ route('admin.logout') }}" method="POST">
                             @csrf

@@ -65,7 +65,11 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth'])->group(functi
         Route::get('{id}/attendees', [EventController::class, 'attendees'])->name('attendees');
     });
 
-
+Route::prefix('feedbacks')->name('feedbacks.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Admin\FeedbackController::class, 'index'])->name('index');
+    Route::get('{id}', [App\Http\Controllers\Admin\FeedbackController::class, 'show'])->name('show');
+    Route::delete('{id}', [App\Http\Controllers\Admin\FeedbackController::class, 'destroy'])->name('destroy');
+});
     Route::get('/test-google-maps', function() {
     $apiKey = config('services.google_maps.api_key');
     

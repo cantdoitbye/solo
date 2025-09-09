@@ -261,6 +261,9 @@ Route::prefix('account-settings')->name('account-settings.')->middleware('auth:s
         ->name('delete');
 });
 
+    Route::post('feedback', [App\Http\Controllers\Api\V1\FeedbackController::class, 'store'])->name('feedback.store');
+
+
 
 Route::get('test-message-board', function () {
     return response()->json(['message' => 'Message board route working']);

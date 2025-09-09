@@ -69,9 +69,9 @@ class EventController extends Controller
     public function show($id)
     {
         $event = Event::with([
-            'host:id,name,phone_number,email',
+            'host:id,name,phone_number',
             'suggestedLocation:id,name,venue_name,venue_address,city',
-            'attendees.user:id,name,phone_number,email'
+            'attendees.user:id,name,phone_number'
         ])->findOrFail($id);
         
         // Event statistics
