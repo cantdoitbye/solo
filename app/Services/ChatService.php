@@ -215,116 +215,116 @@ class ChatService
     /**
      * Get user's chat rooms
      */
-    public function getUserChatRooms(int $userId): array
-    {
-        $chatRooms = ChatRoom::forUser($userId)
-            ->with(['latestMessage.sender', 'event', 'members'])
-            ->orderBy('last_message_at', 'desc')
-            ->get();
+    // public function getUserChatRooms(int $userId): array
+    // {
+    //     $chatRooms = ChatRoom::forUser($userId)
+    //         ->with(['latestMessage.sender', 'event', 'members'])
+    //         ->orderBy('last_message_at', 'desc')
+    //         ->get();
 
-        return $chatRooms->map(function ($room) use ($userId) {
-            $latestMessage = $room->latestMessage;
-            $unreadCount = $this->getUnreadCount($room->id, $userId);
+    //     return $chatRooms->map(function ($room) use ($userId) {
+    //         $latestMessage = $room->latestMessage;
+    //         $unreadCount = $this->getUnreadCount($room->id, $userId);
 
-            return [
-                'id' => $room->id,
-                'name' => $room->name,
-                'type' => $room->type,
-                'event_id' => $room->event_id,
-                'members_count' => $room->activeMembers->count(),
-                'latest_message' => $latestMessage ? [
-                    'content' => $latestMessage->content,
-                    'sender_name' => $latestMessage->sender->name ?? 'Unknown',
-                    'profile_photo' => $latestMessage->sender->profile_photo ?? null,
-                    'sent_at' => $latestMessage->created_at->toISOString(),
-                    'type' => $latestMessage->message_type
-                ] : null,
-                'unread_count' => $unreadCount,
-                'last_activity' => $room->last_message_at?->toISOString()
-            ];
-        })->toArray();
-    }
+    //         return [
+    //             'id' => $room->id,
+    //             'name' => $room->name,
+    //             'type' => $room->type,
+    //             'event_id' => $room->event_id,
+    //             'members_count' => $room->activeMembers->count(),
+    //             'latest_message' => $latestMessage ? [
+    //                 'content' => $latestMessage->content,
+    //                 'sender_name' => $latestMessage->sender->name ?? 'Unknown',
+    //                 'profile_photo' => $latestMessage->sender->profile_photo ?? null,
+    //                 'sent_at' => $latestMessage->created_at->toISOString(),
+    //                 'type' => $latestMessage->message_type
+    //             ] : null,
+    //             'unread_count' => $unreadCount,
+    //             'last_activity' => $room->last_message_at?->toISOString()
+    //         ];
+    //     })->toArray();
+    // }
 
 
 /**
  * Get user's chat rooms with proper personal chat handling (Optimized version)
  */
-// public function getUserChatRooms(int $userId): array
-// {
-//     $chatRooms = ChatRoom::forUser($userId)
-//         ->with([
-//             'latestMessage.sender', 
-//             'event', 
-//             'members' => function($query) use ($userId) {
-//                 // Eager load all members with pivot data for personal chats
-//                 $query->withPivot(['is_online', 'last_seen_at', 'last_read_at', 'is_active'])
-//                       ->where('chat_room_members.is_active', true);
-//             }
-//         ])
-//         ->orderBy('last_message_at', 'desc')
-//         ->get();
+public function getUserChatRooms(int $userId): array
+{
+    $chatRooms = ChatRoom::forUser($userId)
+        ->with([
+            'latestMessage.sender', 
+            'event', 
+            'members' => function($query) use ($userId) {
+                // Eager load all members with pivot data for personal chats
+                $query->withPivot(['is_online', 'last_seen_at', 'last_read_at', 'is_active'])
+                      ->where('chat_room_members.is_active', true);
+            }
+        ])
+        ->orderBy('last_message_at', 'desc')
+        ->get();
 
-//     return $chatRooms->map(function ($room) use ($userId) {
-//         $latestMessage = $room->latestMessage;
-//         $unreadCount = $this->getUnreadCount($room->id, $userId);
+    return $chatRooms->map(function ($room) use ($userId) {
+        $latestMessage = $room->latestMessage;
+        $unreadCount = $this->getUnreadCount($room->id, $userId);
 
-//         $baseData = [
-//             'id' => $room->id,
-//             'type' => $room->type,
-//             'event_id' => $room->event_id,
-//             'members_count' => $room->activeMembers->count(),
-//             'latest_message' => $latestMessage ? [
-//                 'content' => $latestMessage->content,
-//                 'sender_name' => $latestMessage->sender->name ?? 'Unknown User',
-//                 'sent_at' => $latestMessage->created_at->toISOString(),
-//                 'message_type' => $latestMessage->message_type
-//             ] : null,
-//             'unread_count' => $unreadCount,
-//             'last_activity' => $room->last_message_at?->toISOString(),
-//             'created_at' => $room->created_at->toISOString(),
-//         ];
+        $baseData = [
+            'id' => $room->id,
+            'type' => $room->type,
+            'event_id' => $room->event_id,
+            'members_count' => $room->activeMembers->count(),
+            'latest_message' => $latestMessage ? [
+                'content' => $latestMessage->content,
+                'sender_name' => $latestMessage->sender->name ?? 'Unknown User',
+                'sent_at' => $latestMessage->created_at->toISOString(),
+                'message_type' => $latestMessage->message_type
+            ] : null,
+            'unread_count' => $unreadCount,
+            'last_activity' => $room->last_message_at?->toISOString(),
+            'created_at' => $room->created_at->toISOString(),
+        ];
 
-//         // Handle personal chats differently
-//         if ($room->type === ChatRoom::TYPE_PERSONAL) {
-//             $otherUser = $room->getOtherUserWithMemberData($userId);
+        // Handle personal chats differently
+        if ($room->type === ChatRoom::TYPE_PERSONAL) {
+            $otherUser = $room->getOtherUserWithMemberData($userId);
 
-//             if ($otherUser) {
-//                 return array_merge($baseData, [
-//                     'name' => $otherUser->name,
-//                     'avatar_url' => $otherUser->avatar_url ?? $otherUser->profile_photo ?? null,
-//                     'other_user' => [
-//                         'id' => $otherUser->id,
-//                         'name' => $otherUser->name,
-//                         'avatar_url' => $otherUser->avatar_url ?? $otherUser->profile_photo ?? null,
-//                         'is_online' => $otherUser->pivot->is_online ?? false,
-//                         'last_seen_at' => $otherUser->pivot->last_seen_at?->toISOString(),
-//                         'bio' => $otherUser->bio ?? null,
-//                         'age' => $otherUser->age ?? null,
-//                         'city' => $otherUser->city ?? null,
-//                         'state' => $otherUser->state ?? null,
-//                     ],
-//                     'is_online' => $otherUser->pivot->is_online ?? false,
-//                 ]);
-//             } else {
-//                 // Fallback if other user not found or inactive
-//                 return array_merge($baseData, [
-//                     'name' => 'Unknown User',
-//                     'avatar_url' => null,
-//                     'other_user' => null,
-//                     'is_online' => false,
-//                 ]);
-//             }
-//         } else {
-//             // Handle event group chats
-//             return array_merge($baseData, [
-//                 'name' => $room->name,
-//                 'avatar_url' => null,
-//                 'other_user' => null,
-//                 'is_online' => null,
-//             ]);
-//         }
-//     })->toArray();
-// }
+            if ($otherUser) {
+                return array_merge($baseData, [
+                    'name' => $otherUser->name,
+                    'avatar_url' => $otherUser->avatar_url ?? $otherUser->profile_photo ?? null,
+                    'other_user' => [
+                        'id' => $otherUser->id,
+                        'name' => $otherUser->name,
+                        'avatar_url' => $otherUser->avatar_url ?? $otherUser->profile_photo ?? null,
+                        'is_online' => $otherUser->pivot->is_online ?? false,
+                        'last_seen_at' => $otherUser->pivot->last_seen_at?->toISOString(),
+                        'bio' => $otherUser->bio ?? null,
+                        'age' => $otherUser->age ?? null,
+                        'city' => $otherUser->city ?? null,
+                        'state' => $otherUser->state ?? null,
+                    ],
+                    'is_online' => $otherUser->pivot->is_online ?? false,
+                ]);
+            } else {
+                // Fallback if other user not found or inactive
+                return array_merge($baseData, [
+                    'name' => 'Unknown User',
+                    'avatar_url' => null,
+                    'other_user' => null,
+                    'is_online' => false,
+                ]);
+            }
+        } else {
+            // Handle event group chats
+            return array_merge($baseData, [
+                'name' => $room->name,
+                'avatar_url' => null,
+                'other_user' => null,
+                'is_online' => null,
+            ]);
+        }
+    })->toArray();
+}
 
     /**
      * Get messages for a chat room
