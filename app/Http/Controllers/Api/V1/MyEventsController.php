@@ -153,7 +153,7 @@ class MyEventsController extends Controller
             return [
                 'id' => $event->id,
                 'name' => $event->name,
-                'time' => Carbon::parse($event->event_time)->format('H:i A'), // 09:00 AM format
+                'time' => Carbon::parse($event->event_time)->format('H:i'), // 09:00 AM format
                 'location' => $event->venue_name ?? 'Location not specified',
                 'image_url' => $this->getEventImage($event),
                 'attendees_count' => $event->confirmed_count ?? 0,

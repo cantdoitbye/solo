@@ -70,7 +70,7 @@
                         <td class="px-4 py-3">
                             <div class="d-flex align-items-center">
                                 <div class="me-3">
-                                    <img src="{{ asset('storage/' . $banner->image_path) }}" 
+                                    <img src="{{ asset('/' . $banner->image_path) }}" 
                                          alt="{{ $banner->title }}"
                                          class="rounded" 
                                          style="width: 60px; height: 40px; object-fit: cover;">
@@ -130,14 +130,7 @@
                         </td>
                         <td class="py-3 text-center">
                             <div class="btn-group btn-group-sm">
-                                <a href="{{ route('admin.banners.show', $banner->id) }}" 
-                                   class="btn btn-outline-primary" title="View Details">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{{ route('admin.banners.edit', $banner->id) }}" 
-                                   class="btn btn-outline-warning" title="Edit Banner">
-                                    <i class="fas fa-edit"></i>
-                                </a>
+                             
                                 <form method="POST" action="{{ route('admin.banners.toggle-status', $banner->id) }}" class="d-inline">
                                     @csrf
                                     <button type="submit" 

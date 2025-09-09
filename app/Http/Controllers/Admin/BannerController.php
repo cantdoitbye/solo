@@ -54,10 +54,21 @@ class BannerController extends Controller
         ]);
 
         // Handle image upload
-        $image = $request->file('image');
-        $filename = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
-        $path = $image->storeAs('banners', $filename, 'public');
+        // $image = $request->file('image');
+        // $filename = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
+        // $path = $image->storeAs('banners', $filename, 'public');
+   $uploadPath = public_path('banners');
+    if (!file_exists($uploadPath)) {
+        mkdir($uploadPath, 0777, true);
+    }
 
+    // Handle image upload
+    $image = $request->file('image');
+    $filename = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
+
+    // Save to public/banners
+    $path = 'banners/' . $filename;
+    $image->move($uploadPath, $filename);
         Banner::create([
             'title' => $request->title,
             'description' => $request->description,
@@ -112,19 +123,37 @@ class BannerController extends Controller
         ];
 
         // Handle image upload if new image provided
-        if ($request->hasFile('image')) {
-            // Delete old image
-            if (Storage::disk('public')->exists($banner->image_path)) {
-                Storage::disk('public')->delete($banner->image_path);
-            }
+        // if ($request->hasFile('image')) {
+        //     // Delete old image
+        //     if (Storage::disk('public')->exists($banner->image_path)) {
+        //         Storage::disk('public')->delete($banner->image_path);
+        //     }
 
-            $image = $request->file('image');
-            $filename = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
-            $path = $image->storeAs('banners', $filename, 'public');
+        //     $image = $request->file('image');
+        //     $filename = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
+        //     $path = $image->storeAs('banners', $filename, 'public');
 
-            $updateData['image_path'] = $path;
-            $updateData['image_url'] = Storage::disk('public')->url($path);
+        //     $updateData['image_path'] = $path;
+        //     $updateData['image_url'] = Storage::disk('public')->url($path);
+        // }
+
+           // Handle image upload if new image provided
+    if ($request->hasFile('image')) {
+        // Delete old image from public/banners
+        if ($banner->image_path && file_exists(public_path($banner->image_path))) {
+            unlink(public_path($banner->image_path));
         }
+
+        $image = $request->file('image');
+        $filename = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
+
+        // Save to public/banners
+        $path = 'banners/' . $filename;
+        $image->move(public_path('banners'), $filename);
+
+        $updateData['image_path'] = $path;
+        $updateData['image_url'] = asset($path);
+    }
 
         $banner->update($updateData);
 

@@ -221,16 +221,22 @@ class SuggestedLocationController extends Controller
         $isPrimarySet = $location->images()->where('is_primary', true)->exists();
         
         foreach ($images as $index => $image) {
-            $filename = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
-            $path = $image->storeAs('location_images', $filename, 'public');
-            
+            // $filename = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
+            // $path = $image->storeAs('location_images', $filename, 'public');
+                  $filename = time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
+  $fileSize = $image->getSize();
+    $mimeType = $image->getMimeType();
+        // Save to public/location_images
+        $path = 'location_images/' . $filename;
+        $image->move(public_path('location_images'), $filename);
+
             LocationImage::create([
                 'suggested_location_id' => $location->id,
                 'image_path' => $path,
                 'image_url' => Storage::disk('public')->url($path),
                 'original_filename' => $image->getClientOriginalName(),
-                'file_size' => $image->getSize(),
-                'mime_type' => $image->getMimeType(),
+                'file_size' => $fileSize,
+                'mime_type' => $mimeType,
                 'width' => null, // You can add image dimensions if needed
                 'height' => null,
                 'is_primary' => !$isPrimarySet && $index === 0, // First image as primary if none set

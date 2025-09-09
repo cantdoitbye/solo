@@ -162,10 +162,10 @@
                                    class="btn btn-outline-primary" title="View Details">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{{ route('admin.locations.edit', $location->id) }}" 
+                                {{-- <a href="{{ route('admin.locations.edit', $location->id) }}" 
                                    class="btn btn-outline-warning" title="Edit Location">
                                     <i class="fas fa-edit"></i>
-                                </a>
+                                </a> --}}
                                 @if($location->google_maps_url)
                                     <a href="{{ $location->google_maps_url }}" 
                                        target="_blank"
