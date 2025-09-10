@@ -276,12 +276,12 @@ public function getUserChatRooms(int $userId): array
             'latest_message' => $latestMessage ? [
                 'content' => $latestMessage->content,
                 'sender_name' => $latestMessage->sender->name ?? 'Unknown User',
-                'sent_at' => $latestMessage->created_at->toISOString(),
+                'sent_at' => $latestMessage->created_at?->toISOString(),
                 'message_type' => $latestMessage->message_type
             ] : null,
             'unread_count' => $unreadCount,
             'last_activity' => $room->last_message_at?->toISOString(),
-            'created_at' => $room->created_at->toISOString(),
+            'created_at' => $room->created_at?->toISOString(),
         ];
 
         // Handle personal chats differently
@@ -297,7 +297,11 @@ public function getUserChatRooms(int $userId): array
                         'name' => $otherUser->name,
                         'avatar_url' => $otherUser->avatar_url ?? $otherUser->profile_photo ?? null,
                         'is_online' => $otherUser->pivot->is_online ?? false,
-                        'last_seen_at' => $otherUser->pivot->last_seen_at?->toISOString(),
+'last_seen_at' => $otherUser->pivot->last_seen_at
+    ? \Carbon\Carbon::parse($otherUser->pivot->last_seen_at)->toISOString()
+    : null,
+
+                        // 'last_seen_at' => $otherUser->pivot->last_seen_at?->toISOString(),
                         'bio' => $otherUser->bio ?? null,
                         'age' => $otherUser->age ?? null,
                         'city' => $otherUser->city ?? null,
