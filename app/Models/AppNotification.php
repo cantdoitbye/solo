@@ -38,6 +38,7 @@ const TYPE_WELCOME = 'welcome';
 const TYPE_EVENT_REMINDER = 'event_reminder';
 const TYPE_GENERAL = 'general';
 const TYPE_DM_REQUEST = 'dm_request';
+const TYPE_CHAT_MESSAGE = 'chat_message';
 
 
 
@@ -50,6 +51,7 @@ public static function getNotificationTypes(): array
         self::TYPE_WELCOME => 'Welcome',
         self::TYPE_EVENT_REMINDER => 'Event Reminder',
         self::TYPE_GENERAL => 'General',
+        self::TYPE_CHAT_MESSAGE => 'Chat Message',
     ];
 }
 

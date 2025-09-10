@@ -459,42 +459,4 @@ public function sendEventReviewNotification(int $eventId, int $reviewerId, int $
         );
     }
 
-    /**
-     * Send SOS notification (similar to your emergency example)
-     */
-    public function sendSOSNotification($sender, array $recipients = []): bool
-    {
-        $title = "🚨 URGENT SOS ALERT!";
-        $body = "⚠️ {$sender->name} IS IN DANGER! Please react urgently!";
-
-        $data = [
-            'notification_type' => 'sos',
-            'sender_id' => (string)$sender->id,
-            'sender_name' => $sender->name,
-            'timestamp' => now()->toISOString(),
-        ];
-
-        // If no specific recipients, send to all users in the same area/group
-        if (empty($recipients)) {
-            // You can customize this logic based on your app's structure
-            $recipients = User::where('id', '!=', $sender->id)
-                ->whereNotNull('fcm_token')
-                ->get();
-        }
-
-        $successCount = 0;
-        foreach ($recipients as $recipient) {
-            if ($this->sendPushNotification($recipient, $title, $body, $data, 'sos')) {
-                $successCount++;
-            }
-        }
-
-        Log::info('SOS notification sent', [
-            'sender_id' => $sender->id,
-            'total_recipients' => count($recipients),
-            'successful_sends' => $successCount
-        ]);
-
-        return $successCount > 0;
-    }
 }

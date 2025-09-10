@@ -147,6 +147,9 @@ class ChatService
         // Broadcast message to all chat room members except sender
         broadcast(new MessageSent($message, $chatRoom, $senderId))->toOthers();
 
+
+        $this->sendMessageNotifications($message, $chatRoom, $senderId);
+
         return $message;
     }
 
@@ -452,4 +455,129 @@ public function getChatMessages(int $chatRoomId, int $userId, int $page = 1, int
             ->where('user_id', $userId)
             ->update(['last_read_at' => now()]);
     }
+
+/**
+ * Send push notifications to chat room members (except sender)
+ */
+private function sendMessageNotifications(Message $message, ChatRoom $chatRoom, int $senderId): void
+{
+    try {
+        // Get the sender information
+        $sender = \App\Models\User::find($senderId);
+        if (!$sender) {
+            return;
+        }
+
+        // Get chat room members excluding the sender
+        $receiverIds = $chatRoom->activeUsers()
+            ->where('users.id', '!=', $senderId)
+            ->pluck('users.id')
+            ->toArray();
+
+        if (empty($receiverIds)) {
+            return;
+        }
+
+        // Prepare notification content based on chat type
+        if ($chatRoom->type === ChatRoom::TYPE_PERSONAL) {
+            // Personal chat notification
+            $this->sendPersonalChatNotification($message, $sender, $receiverIds);
+        } else {
+            // Group chat notification (event chat)
+            $this->sendGroupChatNotification($message, $sender, $chatRoom, $receiverIds);
+        }
+
+    } catch (\Exception $e) {
+        \Log::error('Failed to send message notifications', [
+            'message_id' => $message->id,
+            'chat_room_id' => $chatRoom->id,
+            'sender_id' => $senderId,
+            'error' => $e->getMessage()
+        ]);
+        // Don't throw exception as this shouldn't break message sending
+    }
+}
+
+/**
+ * Send notification for personal chat message
+ */
+private function sendPersonalChatNotification(Message $message, $sender, array $receiverIds): void
+{
+    $title = "💬 New Message";
+    $body = $this->getMessageNotificationBody($message, $sender->name);
+    
+    $data = [
+        'message_id' => (string)$message->id,
+        'chat_room_id' => (string)$message->chat_room_id,
+        'sender_id' => (string)$sender->id,
+        'sender_name' => $sender->name,
+        'sender_profile_photo' => $sender->profile_photo ?? '',
+        'message_type' => $message->message_type,
+        'chat_type' => 'personal',
+        'timestamp' => $message->created_at->toISOString(),
+    ];
+
+    // Send to each receiver
+    $notificationService = app(\App\Services\FirebaseNotificationService::class);
+    foreach ($receiverIds as $receiverId) {
+        $notificationService->sendToUser($title, $body, $receiverId, 'chat_message', $data);
+    }
+}
+
+/**
+ * Send notification for group chat message
+ */
+private function sendGroupChatNotification(Message $message, $sender, ChatRoom $chatRoom, array $receiverIds): void
+{
+    $title = "👥 {$chatRoom->name}";
+    $body = $this->getMessageNotificationBody($message, $sender->name);
+    
+    $data = [
+        'message_id' => (string)$message->id,
+        'chat_room_id' => (string)$message->chat_room_id,
+        'sender_id' => (string)$sender->id,
+        'sender_name' => $sender->name,
+        'sender_profile_photo' => $sender->profile_photo ?? '',
+        'message_type' => $message->message_type,
+        'chat_type' => 'group',
+        'chat_name' => $chatRoom->name,
+        'event_id' => (string)($chatRoom->event_id ?? ''),
+        'timestamp' => $message->created_at->toISOString(),
+    ];
+
+    // Send to each receiver
+    $notificationService = app(\App\Services\FirebaseNotificationService::class);
+    foreach ($receiverIds as $receiverId) {
+        $notificationService->sendToUser($title, $body, $receiverId, 'chat_message', $data);
+    }
+}
+
+/**
+ * Get appropriate notification body text based on message type
+ */
+private function getMessageNotificationBody(Message $message, ?string $senderName): string
+{
+    switch ($message->message_type) {
+        case 'text':
+            // Truncate long messages for notification
+            $content = strlen($message->content) > 50 
+                ? substr($message->content, 0, 50) . '...' 
+                : $message->content;
+            return "{$content}";
+            
+        case 'image':
+            return "{$senderName} sent a photo";
+            
+        case 'file':
+            $fileName = $message->file_name ?? 'a file';
+            return "{$senderName} sent {$fileName}";
+            
+        case 'system':
+            return $message->content;
+            
+        default:
+            return "{$senderName} sent a message";
+    }
+}
+
 }
