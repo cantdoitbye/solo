@@ -99,7 +99,7 @@
                                                 Primary
                                             </span>
                                         @endif
-                                        <img src="{{ $image->image_url }}" 
+                                        <img src="{{ asset('/'.  $image->image_url ) }}" 
                                              alt="{{ $location->name }} - Image {{ $loop->iteration }}"
                                              class="card-img-top"
                                              style="height: 150px; object-fit: cover;">
@@ -184,11 +184,18 @@
                 @endif
             </div>
             <div class="card-body">
+              
+                
                 @if($events->count() > 0)
                     @foreach($events as $event)
                         <div class="d-flex justify-content-between align-items-start py-2 {{ !$loop->last ? 'border-bottom' : '' }}">
                             <div class="flex-grow-1">
-                                <div class="fw-bold mb-1">{{ $event->name }}</div>
+                                <div class="fw-bold mb-1">
+                                    <a href="{{ route('admin.events.show', $event->id) }}" 
+                                       class="text-decoration-none">
+                                        {{ $event->name }}
+                                    </a>
+                                </div>
                                 <small class="text-muted d-block mb-1">
                                     <i class="fas fa-user me-1"></i>
                                     {{ $event->host->name ?? 'Unknown Host' }}
@@ -197,22 +204,71 @@
                                     <small class="text-muted d-block">
                                         <i class="fas fa-calendar me-1"></i>
                                         {{ $event->event_date->format('M j, Y') }}
+                                        @if($event->event_time)
+                                            at {{ $event->event_time->format('g:i A') }}
+                                        @endif
+                                    </small>
+                                @endif
+                                @if($event->min_group_size)
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-users me-1"></i>
+                                        {{ $event->min_group_size }} {{ $event->min_group_size == 1 ? 'person' : 'people' }}
                                     </small>
                                 @endif
                             </div>
                             <div class="text-end">
                                 @if($event->status)
                                     <span class="badge badge-sm 
-                                        {{ $event->status === 'active' ? 'bg-success' : 
-                                           ($event->status === 'cancelled' ? 'bg-danger' : 'bg-secondary') }}">
+                                        {{ $event->status === 'published' ? 'bg-success' : 
+                                           ($event->status === 'cancelled' ? 'bg-danger' : 
+                                           ($event->status === 'pending' ? 'bg-warning' : 'bg-secondary')) }}">
                                         {{ ucfirst($event->status) }}
                                     </span>
                                 @endif
                                 <br>
-                                <small class="text-muted">{{ $event->created_at->diffForHumans() }}</small>
+                                <small class="text-muted">Created {{ $event->created_at->diffForHumans() }}</small>
                             </div>
                         </div>
                     @endforeach
+                    
+                    <!-- Pagination Links -->
+                    @if($events->hasPages())
+                        <div class="mt-3 pt-3 border-top">
+                            <nav aria-label="Events pagination">
+                                <ul class="pagination pagination-sm justify-content-center mb-0">
+                                    {{-- Previous Page Link --}}
+                                    @if ($events->onFirstPage())
+                                        <li class="page-item disabled"><span class="page-link">Previous</span></li>
+                                    @else
+                                        <li class="page-item"><a class="page-link" href="{{ $events->previousPageUrl() }}" rel="prev">Previous</a></li>
+                                    @endif
+
+                                    {{-- Pagination Elements --}}
+                                    @foreach ($events->getUrlRange(1, $events->lastPage()) as $page => $url)
+                                        @if ($page == $events->currentPage())
+                                            <li class="page-item active"><span class="page-link">{{ $page }}</span></li>
+                                        @else
+                                            <li class="page-item"><a class="page-link" href="{{ $url }}">{{ $page }}</a></li>
+                                        @endif
+                                    @endforeach
+
+                                    {{-- Next Page Link --}}
+                                    @if ($events->hasMorePages())
+                                        <li class="page-item"><a class="page-link" href="{{ $events->nextPageUrl() }}" rel="next">Next</a></li>
+                                    @else
+                                        <li class="page-item disabled"><span class="page-link">Next</span></li>
+                                    @endif
+                                </ul>
+                            </nav>
+                            
+                            {{-- Pagination Info --}}
+                            <div class="text-center mt-2">
+                                <small class="text-muted">
+                                    Showing {{ $events->firstItem() ?? 0 }} to {{ $events->lastItem() ?? 0 }} of {{ $events->total() }} events
+                                </small>
+                            </div>
+                        </div>
+                    @endif
                 @else
                     <div class="text-center py-4">
                         <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>

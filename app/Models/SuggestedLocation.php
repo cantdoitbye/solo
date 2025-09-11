@@ -72,6 +72,11 @@ class SuggestedLocation extends Model
         return $this->hasMany(LocationImage::class);
     }
 
+     public function events(): HasMany
+    {
+        return $this->hasMany(Event::class, 'suggested_location_id', 'id');
+    }
+
     /**
      * Get the primary image for this suggested location
      */

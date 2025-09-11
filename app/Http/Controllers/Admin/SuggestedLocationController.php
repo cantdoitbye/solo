@@ -13,7 +13,7 @@ class SuggestedLocationController extends Controller
 {
     public function index(Request $request)
     {
-        $query = SuggestedLocation::with(['images', 'primaryImage']);
+        $query = SuggestedLocation::with(['images', 'primaryImage'])->withCount('events');
         
         // Search functionality
         if ($request->filled('search')) {
@@ -39,6 +39,7 @@ class SuggestedLocationController extends Controller
         $locations = $query->orderBy('sort_order', 'asc')
                           ->orderBy('created_at', 'desc')
                           ->paginate(20);
+
         
         // Get unique categories for filter
         $categories = SuggestedLocation::distinct()->pluck('category')->filter()->sort();
@@ -107,8 +108,7 @@ class SuggestedLocationController extends Controller
         $events = \App\Models\Event::where('suggested_location_id', $id)
             ->with('host:id,name')
             ->orderBy('created_at', 'desc')
-            ->take(10)
-            ->get();
+            ->paginate(10);
             
         return view('admin.locations.show', compact('location', 'events'));
     }

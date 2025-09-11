@@ -79,6 +79,7 @@
                         <th class="py-3">Status</th>
                         <th class="py-3">Order</th>
                         <th class="py-3">Images</th>
+                        <th class="py-3">Total Events</th>
                         <th class="py-3 text-center">Actions</th>
                     </tr>
                 </thead>
@@ -156,6 +157,7 @@
                                 @endif
                             </div>
                         </td>
+                        <td>{{ $location->events_count}}</td>
                         <td class="py-3 text-center">
                             <div class="btn-group btn-group-sm">
                                 <a href="{{ route('admin.locations.show', $location->id) }}" 
