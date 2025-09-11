@@ -21,6 +21,38 @@
             </div>
         </div>
     </div>
+
+     <div class="col-xl-3 col-md-6">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0 fw-bold">{{ number_format($stats['paid_users'] ?? 0) }}</h2>
+                        <p class="mb-0 opacity-75">Paid Users</p>
+                    </div>
+                    <div class="fs-1 opacity-50">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     <div class="col-xl-3 col-md-6">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="mb-0 fw-bold">{{ number_format($stats['free_users'] ?? 0) }}</h2>
+                        <p class="mb-0 opacity-75">Free Users</p>
+                    </div>
+                    <div class="fs-1 opacity-50">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <div class="col-xl-3 col-md-6">
         <div class="card bg-success text-white">

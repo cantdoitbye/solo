@@ -80,6 +80,8 @@ class AuthController extends Controller
         // Get dashboard statistics
         $stats = [
             'total_users' => User::count(),
+            'paid_users' => User::where('is_paid_member', true)->count(),
+            'free_users' => User::where('is_paid_member', false)->count(),
             'active_users' => User::where('status', 'active')->count(),
             'blocked_users' => User::where('status', 'blocked')->count(),
             'new_users_week' => User::where('created_at', '>=', now()->subWeek())->count(),
