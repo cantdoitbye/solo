@@ -99,7 +99,7 @@ class SuggestedLocationsController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'google_maps_url' => 'required|string',
-            'google_place_id' => 'nullable|string',
+    'google_place_id' => 'nullable|string|unique:suggested_locations,google_place_id',
             'venue_name' => 'nullable|string|max:255',
             'venue_address' => 'nullable|string',
             'latitude' => 'nullable|numeric|between:-90,90',

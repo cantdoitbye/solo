@@ -75,7 +75,7 @@ class FirebaseNotificationService
         $fcmToken = is_string($to) ? $to : $to->fcm_token;
         $userId = is_string($to) ? null : $to->id;
         $notification = null;
-          if ($userId) {
+          if ($userId && $type !== 'chat_message') {
             $notification = AppNotification::create([
                 'title' => $title,
                 'body' => $body,
