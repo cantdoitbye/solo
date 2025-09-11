@@ -512,7 +512,7 @@ private function sendPersonalChatNotification(Message $message, $sender, array $
         'sender_id' => (string)$sender->id,
         'sender_name' => $sender->name,
         'sender_profile_photo' => $sender->profile_photo ?? '',
-        'message_type' => $message->message_type,
+        'msg_type' => $message->message_type,
         'chat_type' => 'personal',
         'timestamp' => $message->created_at->toISOString(),
     ];
@@ -538,7 +538,7 @@ private function sendGroupChatNotification(Message $message, $sender, ChatRoom $
         'sender_id' => (string)$sender->id,
         'sender_name' => $sender->name,
         'sender_profile_photo' => $sender->profile_photo ?? '',
-        'message_type' => $message->message_type,
+        'msg_type' => $message->message_type,
         'chat_type' => 'group',
         'chat_name' => $chatRoom->name,
         'event_id' => (string)($chatRoom->event_id ?? ''),

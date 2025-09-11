@@ -147,8 +147,6 @@ class ProfileService
                 'olos_balance' => $user->getCurrentOlosBalance(),
                 'profile_photo' => $user->profile_photo,
                 'referral_code' => $user->referral_code,
-
-             
             ]
           
          
