@@ -143,14 +143,36 @@ class OnboardingService
         if ($referral->user_id === $userId) {
             throw new \Exception('You cannot use your own referral code');
         }
-        
-        DB::transaction(function () use ($userId, $referral) {
+
+          // Check if user already has a referral relationship
+    $existingReferral = \App\Models\UserReferral::where('referred_id', $userId)->first();
+    if ($existingReferral) {
+        throw new \Exception('You have already used a referral code');
+    }
+    
+            $referrer = $this->userRepository->findById($referral->user_id);
+    $isReferrerPaid = $referrer && $referrer->is_paid_member;
+
+        DB::transaction(function () use ($userId, $referral, $isReferrerPaid, $referralCode) {
             // Update user with referral code
             $this->userRepository->update($userId, [
                 'used_referral_code' => $referral->code,
                 'referral_points' => 50 // Bonus points for using referral
             ]);
             
+            // Create referral relationship record
+        \App\Models\UserReferral::create([
+            'referrer_id' => $referral->user_id,
+            'referred_id' => $userId,
+            'referral_code_used' => $referralCode,
+            'referrer_was_paid' => $isReferrerPaid,
+            'is_eligible_for_free_event' => $isReferrerPaid,
+            'referrer_bonus_points' => 50,
+            'referred_bonus_points' => 50,
+            'referred_at' => now(),
+        ]);
+
+
             // Update referrer points
             $this->userRepository->update($referral->user_id, [
                 'referral_points' => DB::raw('referral_points + 50')

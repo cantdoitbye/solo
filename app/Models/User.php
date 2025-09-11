@@ -54,6 +54,9 @@ class User extends Authenticatable
          'status', // New field
         'blocked_at', // New field
         'block_reason',
+        'is_paid_member',
+'plan_type', 
+'paid_member_since',
     ];
 
     protected $hidden = [
@@ -79,13 +82,23 @@ class User extends Authenticatable
         'sound_alerts_enabled' => 'boolean',
         'account_settings_updated_at' => 'datetime',
                 'blocked_at' => 'datetime',
+                'is_paid_member' => 'boolean',
+'paid_member_since' => 'datetime',
     ];
 
        const STATUS_ACTIVE = 'active';
     const STATUS_BLOCKED = 'blocked';
     const STATUS_INACTIVE = 'inactive';
 
+public function referrals(): HasMany
+{
+    return $this->hasMany(UserReferral::class, 'referrer_id');
+}
 
+public function referredBy(): HasOne
+{
+    return $this->hasOne(UserReferral::class, 'referred_id');
+}
       public function isActive(): bool
     {
         return $this->status === self::STATUS_ACTIVE;

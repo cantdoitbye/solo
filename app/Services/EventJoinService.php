@@ -122,7 +122,42 @@ public function joinEvent(int $userId, int $eventId, array $membersData): array
             $totalMembers = count($membersData);
             $costPerMember = $event->token_cost_per_attendee;
             $totalCost = $totalMembers * $costPerMember;
+
+            $isFreeEventForReferredFriend = $this->canJoinEventForFree($userId);
+
             
+           if ($isFreeEventForReferredFriend) {
+    if ($totalMembers === 1) {
+        // Completely free for single member
+        $this->validateUserEligibility($userId, $event);
+        $this->checkExistingAttendance($userId, $eventId);
+        $this->validateEventCapacity($event, 1);
+
+        $attendee = $this->createAttendeeRecord($userId, $event, 1, 0, 0, $membersData);
+        $this->markFreeEventAsUsed($userId, $eventId);
+        
+        $isFreeEvent = true;
+        $finalTotalCost = 0;
+        
+    } else {
+        // Free for first member, charge for additional members
+        $additionalMembers = $totalMembers - 1;
+        $discountedCost = $additionalMembers * $costPerMember; // First member free
+        
+        $this->validateUserEligibility($userId, $event);
+        $this->checkExistingAttendance($userId, $eventId);
+        $this->validateEventCapacity($event, $totalMembers);
+        
+        // Validate Olos balance for discounted cost
+        // $this->validateOlosBalance($userId, $discountedCost);
+        // $olosTransaction = $this->deductEventCost($userId, $event, $additionalMembers, $discountedCost);
+        
+        $attendee = $this->createAttendeeRecord($userId, $event, $totalMembers, $costPerMember, $discountedCost, $membersData);
+        $this->markFreeEventAsUsed($userId, $eventId);
+        
+        $isFreeEvent = false;
+        $finalTotalCost = $discountedCost;
+    } } else {
             // 4. Validate user eligibility
             $this->validateUserEligibility($userId, $event);
             
@@ -140,7 +175,9 @@ public function joinEvent(int $userId, int $eventId, array $membersData): array
             
             // 9. Create attendee record with member data as JSON
             $attendee = $this->createAttendeeRecord($userId, $event, $totalMembers, $costPerMember, $totalCost, $membersData);
-            
+                $isFreeEvent = false;
+    $finalTotalCost = $totalCost;
+            }
             // 10. Send notification to event creator
             try {
                 app(\App\Services\FirebaseNotificationService::class)->sendMemberJoinNotification(
@@ -175,7 +212,12 @@ public function joinEvent(int $userId, int $eventId, array $membersData): array
             
             return [
                 'success' => true,
-                'message' => 'Successfully joined the event!',
+                // 'message' => 'Successfully joined the event!',
+                  'message' => $isFreeEvent 
+        ? 'Successfully joined the event for FREE as a referred friend!' 
+        : ($isFreeEventForReferredFriend && $totalMembers > 1 
+            ? 'Successfully joined! First member FREE, additional members charged.' 
+            : 'Successfully joined the event!'),
                 'event_id' => $eventId,
                 'attendee_id' => $attendee->id,
                 'status' => $attendee->status,
@@ -213,6 +255,30 @@ public function joinEvent(int $userId, int $eventId, array $membersData): array
     });
 }
 
+
+// Add these methods to EventJoinService
+
+private function canJoinEventForFree(int $userId): bool
+{
+    $referral = \App\Models\UserReferral::where('referred_id', $userId)
+        ->where('is_eligible_for_free_event', true)
+        ->where('has_used_free_event', false)
+        ->first();
+        
+    return $referral !== null;
+}
+
+private function markFreeEventAsUsed(int $userId, int $eventId): void
+{
+    $referral = \App\Models\UserReferral::where('referred_id', $userId)
+        ->where('is_eligible_for_free_event', true)
+        ->where('has_used_free_event', false)
+        ->first();
+        
+    if ($referral) {
+        $referral->markFreeEventAsUsed($eventId);
+    }
+}
     /**
      * Validate event exists and is joinable
      */

@@ -129,6 +129,8 @@ class OnboardingController extends Controller
             'referral_code' => 'required|string|max:10',
         ]);
 
+        #check
+
         try {
             $result = $this->onboardingService->applyReferralCode(
                 $request->user_id,
