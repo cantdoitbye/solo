@@ -108,8 +108,6 @@ class ProfileService
             'referral' => [
                 'referral_code' => $user->referral_code,
                 'used_referral_code' => $user->used_referral_code,
-                'referral_points' => $user->referral_points,
-                'referral_url' => config('app.url') . '/invite/' . $user->referral_code
             ],
             'discovery' => [
                 'sources' => $discoverySourcesWithLabels,
