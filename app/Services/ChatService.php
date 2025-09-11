@@ -542,6 +542,7 @@ private function sendGroupChatNotification(Message $message, $sender, ChatRoom $
         'chat_type' => 'group',
         'chat_name' => $chatRoom->name,
         'event_id' => (string)($chatRoom->event_id ?? ''),
+        'member_count' => (string)$chatRoom->chatRoomMembers()->count(),
         'timestamp' => $message->created_at->toISOString(),
     ];
 
