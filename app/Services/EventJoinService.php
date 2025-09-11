@@ -8,6 +8,7 @@ use App\Models\EventAttendee;
 use App\Models\User;
 use App\Models\OlosTransaction;
 use App\Repositories\Contracts\EventRepositoryInterface;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class EventJoinService
@@ -294,9 +295,13 @@ private function markFreeEventAsUsed(int $userId, int $eventId): void
             throw new \Exception('Event is not available for joining');
         }
         
-        if ($event->event_date->isPast()) {
-            throw new \Exception('Cannot join past events');
-        }
+if ($event->event_date_time->isPast()) {
+    throw new \Exception('Cannot join past events');
+}
+
+        // if ($eventDateTime->isPast()) {
+        //     throw new \Exception('Cannot join past events');
+        // }
         
         return $event;
     }

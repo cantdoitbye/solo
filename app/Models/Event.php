@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -208,6 +209,15 @@ class Event extends Model
     {
         return $this->event_date->isPast();
     }
+
+  public function getEventDateTimeAttribute()
+{
+    return \Carbon\Carbon::parse(
+        $this->event_date->format('Y-m-d') . ' ' . $this->event_time->format('H:i:s')
+    );
+}
+
+
 
     /**
      * Check if event is upcoming
