@@ -162,7 +162,7 @@ $attendeeInfo = $this->getAttendeeInfo($eventData);
                 
                 // User-specific data (UPDATED)
                 'user_context' => [
-                    'can_join' => $isJoinable && !$userAttendance,
+                    'can_join' => $isJoinable && !$userAttendance && $attendeeInfo['available_spots'] > 0,
                     'is_host' => $event->host_id === $userId,
                     'already_joined' => !!$userAttendance,
                     'is_reviewed' => $existingReview? true : false,
