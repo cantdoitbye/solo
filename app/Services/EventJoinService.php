@@ -179,6 +179,8 @@ public function joinEvent(int $userId, int $eventId, array $membersData): array
                 $isFreeEvent = false;
     $finalTotalCost = $totalCost;
             }
+
+            $joinedUser = User::find($userId);
             // 10. Send notification to event creator
             try {
                 app(\App\Services\FirebaseNotificationService::class)->sendMemberJoinNotification(
@@ -222,6 +224,7 @@ public function joinEvent(int $userId, int $eventId, array $membersData): array
                 'event_id' => $eventId,
                 'chat_room_id' => $chatRoomId,
                 'attendee_id' => $attendee->id,
+                'attendee_name' => $attendee->id,
                 'status' => $attendee->status,
                 'total_members' => $totalMembers,
                 'cost_per_member' => $costPerMember,
@@ -229,6 +232,8 @@ public function joinEvent(int $userId, int $eventId, array $membersData): array
                 'tokens_paid' => $attendee->tokens_paid, // Legacy field, same as total_cost
                 'joined_at' => $attendee->joined_at->toISOString(),
                 'members' => $membersData, // Return the member data directly
+                   'joined_user_id' => (string)$userId,
+                'joined_user_name' => $joinedUser->name,                
                 // 'olos_balance' => [
                 //     'current_balance' => $userOlosSummary['current_balance'],
                 //     'tokens_spent' => $totalCost,
