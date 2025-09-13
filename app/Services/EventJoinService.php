@@ -201,7 +201,7 @@ public function joinEvent(int $userId, int $eventId, array $membersData): array
             // 12. Add user to event chat
             try {
                 $chatService = app(\App\Services\ChatService::class);
-                $chatService->addUserToEventChat($eventId, $userId);
+                $chatRoomId = $chatService->addUserToEventChat($eventId, $userId);
             } catch (\Exception $e) {
                 \Log::error('Failed to add user to event chat', [
                     'error' => $e->getMessage(),
@@ -220,6 +220,7 @@ public function joinEvent(int $userId, int $eventId, array $membersData): array
             ? 'Successfully joined! First member FREE, additional members charged.' 
             : 'Successfully joined the event!'),
                 'event_id' => $eventId,
+                'chat_room_id' => $chatRoomId,
                 'attendee_id' => $attendee->id,
                 'status' => $attendee->status,
                 'total_members' => $totalMembers,

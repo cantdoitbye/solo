@@ -51,7 +51,7 @@ class ChatService
     /**
      * Add user to event group chat when they join event
      */
-    public function addUserToEventChat(int $eventId, int $userId): void
+    public function addUserToEventChat(int $eventId, int $userId): ?int
     {
         $chatRoom = ChatRoom::where('event_id', $eventId)
                            ->where('type', ChatRoom::TYPE_EVENT_GROUP)
@@ -72,7 +72,10 @@ class ChatService
             // Broadcast user joined event
             broadcast(new UserJoinedChat($user, $chatRoom));
             broadcast(new MessageSent($joinMessage, $chatRoom, $userId))->toOthers();
+           return $chatRoom->id; 
         }
+
+         return $chatRoom ? $chatRoom->id : null;
     }
 
     /**
@@ -257,7 +260,7 @@ public function getUserChatRooms(int $userId): array
     $chatRooms = ChatRoom::forUser($userId)
         ->with([
             'latestMessage.sender', 
-            'event', 
+            'event.suggestedLocation.primaryImage', 
             'members' => function($query) use ($userId) {
                 // Eager load all members with pivot data for personal chats
                 $query->withPivot(['is_online', 'last_seen_at', 'last_read_at', 'is_active'])
@@ -313,19 +316,25 @@ public function getUserChatRooms(int $userId): array
                     'is_online' => $otherUser->pivot->is_online ?? false,
                 ]);
             } else {
+              
                 // Fallback if other user not found or inactive
                 return array_merge($baseData, [
                     'name' => 'Unknown User',
-                    'avatar_url' => null,
+                     'avatar_url' => null,
                     'other_user' => null,
                     'is_online' => false,
                 ]);
             }
         } else {
+                $avatarUrl = null;
+
+            if ($room->event && $room->event->suggestedLocation && $room->event->suggestedLocation->primaryImage) {
+                $avatarUrl = $room->event->suggestedLocation->primaryImage->image_url;
+            }
             // Handle event group chats
             return array_merge($baseData, [
                 'name' => $room->name,
-                'avatar_url' => null,
+                'avatar_url' => $avatarUrl,
                 'other_user' => null,
                 'is_online' => null,
             ]);
