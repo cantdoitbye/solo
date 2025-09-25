@@ -39,6 +39,24 @@ Route::prefix('onboarding')->group(function () {
     Route::post('complete', [OnboardingController::class, 'completeOnboarding']);
 });
 
+Route::middleware(['api.optional.auth'])->group(function () {
+    
+    Route::prefix('home')->name('home.')->group(function () {
+        Route::get('/', [HomeScreenController::class, 'getHomeScreen'])
+            ->name('screen');
+        Route::get('category/{categoryId}', [HomeScreenController::class, 'getEventsByCategoryId'])
+            ->name('category-id')
+            ->where('categoryId', '[0-9]+');
+        Route::post('search', [HomeScreenController::class, 'searchEvents'])
+            ->name('search');
+        Route::post('filter', [HomeScreenController::class, 'applyFilters'])
+            ->name('filter');
+    });
+
+    Route::get('/events/{eventId}/details', [EventJoinController::class, 'getEventDetails']);
+    
+});
+
 
 Route::middleware(['auth:sanctum', 'api.auth'])->group(function () {
     
@@ -133,19 +151,19 @@ Route::post('create-bulk', [EventCreationController::class, 'createEventBulk'])
     });
 
 
-     Route::prefix('home')->name('home.')->group(function () {
-        Route::get('/', [HomeScreenController::class, 'getHomeScreen'])
-            ->name('screen');
-        Route::get('category/{categoryId}', [HomeScreenController::class, 'getEventsByCategoryId'])
-            ->name('category-id')
-            ->where('categoryId', '[0-9]+');
-        Route::post('search', [HomeScreenController::class, 'searchEvents'])
-            ->name('search');
-        Route::post('filter', [HomeScreenController::class, 'applyFilters'])
-            ->name('filter');
-    });
+    //  Route::prefix('home')->name('home.')->group(function () {
+    //     Route::get('/', [HomeScreenController::class, 'getHomeScreen'])
+    //         ->name('screen');
+    //     Route::get('category/{categoryId}', [HomeScreenController::class, 'getEventsByCategoryId'])
+    //         ->name('category-id')
+    //         ->where('categoryId', '[0-9]+');
+    //     Route::post('search', [HomeScreenController::class, 'searchEvents'])
+    //         ->name('search');
+    //     Route::post('filter', [HomeScreenController::class, 'applyFilters'])
+    //         ->name('filter');
+    // });
 
-        Route::get('/events/{eventId}/details', [EventJoinController::class, 'getEventDetails']);
+    //     Route::get('/events/{eventId}/details', [EventJoinController::class, 'getEventDetails']);
 
       Route::post('/events/{eventId}/join', [EventJoinController::class, 'joinEvent']);
     Route::post('/events/{eventId}/cancel', [EventJoinController::class, 'cancelAttendance']);

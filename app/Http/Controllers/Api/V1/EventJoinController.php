@@ -31,7 +31,8 @@ class EventJoinController extends Controller
   public function getEventDetails(Request $request, int $eventId): JsonResponse
 {
     try {
-        $userId = $request->user()->id;
+                $userId = $request->user()?->id;
+
         
         // Get event with necessary relationships (UPDATED for new structure)
         $event = Event::with([

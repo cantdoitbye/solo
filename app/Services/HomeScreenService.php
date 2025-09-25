@@ -22,7 +22,7 @@ class HomeScreenService
     /**
      * Get Home Screen Data (Simplified for Index Page)
      */
-   public function getHomeScreenData(int $userId, array $filters = []): array
+   public function getHomeScreenData(?int $userId, array $filters = []): array
     {
         $limit = $filters['limit'] ?? 20;
         $offset = $filters['offset'] ?? 0;
@@ -48,7 +48,7 @@ class HomeScreenService
     /**
      * Apply Filters and Get Events (Simplified - No Venue Categories)
      */
-    public function applyFilters(array $filters, int $userId): array
+    public function applyFilters(array $filters, ?int $userId): array
     {
         $limit = $filters['limit'] ?? 10;
         $offset = $filters['offset'] ?? 0;

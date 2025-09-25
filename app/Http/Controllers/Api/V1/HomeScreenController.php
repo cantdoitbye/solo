@@ -31,7 +31,9 @@ class HomeScreenController extends Controller
         ]);
 
         try {
-            $userId = $request->user()->id;
+            // $userId = $request->user()->id;
+                        $userId = $request->user()?->id;
+
             
             // Prepare date filter parameters
             $filters = [
@@ -71,7 +73,7 @@ class HomeScreenController extends Controller
         ]);
 
         try {
-            $userId = $request->user()->id;
+            $userId = $request->user()?->id;
             $filters = $request->all();
             
             $result = $this->homeScreenService->applyFilters($filters, $userId);

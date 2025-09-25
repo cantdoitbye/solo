@@ -51,7 +51,7 @@ class OlosService
     /**
      * Get user's current Olos balance
      */
-    public function getUserBalance(int $userId): float
+    public function getUserBalance(?int $userId): float
     {
         $userOlos = UserOlos::where('user_id', $userId)->first();
         return $userOlos ? $userOlos->balance : 0;
