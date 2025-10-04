@@ -30,8 +30,9 @@ class EventJoinController extends Controller
 
   public function getEventDetails(Request $request, int $eventId): JsonResponse
 {
+
     try {
-                $userId = $request->user()?->id;
+              $userId = $request->user()?->id;
 
         
         // Get event with necessary relationships (UPDATED for new structure)
@@ -63,7 +64,7 @@ class EventJoinController extends Controller
 
         // Calculate current attendees (sum of all members)
         $currentTotalAttendees = $event->attendees->sum('total_members') 
-                               ?: $event->attendees->count(); // Fallback for legacy records
+                               ?: $event->attendees->count();
 
         // Calculate available slots
         $availableSlots = $event->max_group_size ? 
