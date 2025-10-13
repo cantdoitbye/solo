@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.auth' => \App\Http\Middleware\AdminAuth::class,
             'api.auth' => \App\Http\Middleware\ApiAuth::class,
             'api.optional.auth' => \App\Http\Middleware\OptionalApiAuth::class,
+                        'check.plan' => \App\Http\Middleware\CheckUserPlan::class,
 
 
         ]);

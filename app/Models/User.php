@@ -194,6 +194,76 @@ public function getAgeAttribute($value): ?int
     }
 
 
+
+    /**
+     * ADD THESE RELATIONSHIPS AND METHODS TO YOUR EXISTING USER MODEL
+     */
+
+    /**
+     * Get the user's active plan
+     */
+    public function activePlan()
+    {
+        return $this->hasOne(UserPlan::class)->where('status', 'active');
+    }
+
+    /**
+     * Get all user's plans
+     */
+    public function plans()
+    {
+        return $this->hasMany(UserPlan::class);
+    }
+
+    /**
+     * Get all user's payments
+     */
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Check if user has an active plan
+     */
+    public function hasActivePlan(): bool
+    {
+        return $this->activePlan()->exists();
+    }
+
+    /**
+     * Check if user has a specific plan
+     */
+    public function hasPlan(string $planId): bool
+    {
+        return $this->activePlan()
+            ->where('plan_id', $planId)
+            ->exists();
+    }
+
+    /**
+     * Check if user has any of the given plans
+     */
+    public function hasAnyPlan(array $planIds): bool
+    {
+        return $this->activePlan()
+            ->whereIn('plan_id', $planIds)
+            ->exists();
+    }
+
+    /**
+     * Get user's current plan details
+     */
+    public function getCurrentPlan(): ?array
+    {
+        $activePlan = $this->activePlan;
+        
+        if (!$activePlan) {
+            return null;
+        }
+
+        return $activePlan->getPlanDetails();
+    }
   
   
 

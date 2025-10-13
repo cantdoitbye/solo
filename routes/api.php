@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\V1\OneOnOneDateController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\SuggestedLocationsController;
 use App\Http\Controllers\Api\V1\SwipeController;
+use App\Http\Controllers\Api\V1\UserHashController;
 
 Route::prefix('onboarding')->group(function () {
     Route::post('phone/initiate', [OnboardingController::class, 'initiatePhoneVerification']);
@@ -308,4 +309,9 @@ Route::prefix('notifications')->name('notifications.')->group(function () {
 
 Route::get('chat/{chatId}/attendees', [ChatController::class, 'getChatAttendees']);
     
+
+   Route::get('/user/hash', [UserHashController::class, 'generateHash'])
+            ->name('api.user.hash');
+        Route::post('/user/verify-hash', [UserHashController::class, 'verifyHash'])
+            ->name('api.user.verify-hash');
 });

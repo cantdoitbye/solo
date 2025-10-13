@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\SuggestedLocationController;
 use App\Http\Controllers\Admin\BannerController;
 use App\Http\Controllers\Admin\EventController;
+use App\Http\Controllers\PlansController;
 use Illuminate\Support\Facades\Route;
 
 // Admin authentication routes (no middleware)
@@ -87,4 +88,13 @@ Route::get('/google-maps-test', function() {
     return view('admin.test.google-maps');
 })->middleware('admin.auth');
     
+
+
+});
+
+
+Route::prefix('plans')->group(function () {
+    Route::get('/', [PlansController::class, 'index'])->name('plans.index');
+    Route::get('/success', [PlansController::class, 'success'])->name('plans.success');
+    Route::get('/cancel', [PlansController::class, 'cancel'])->name('plans.cancel');
 });
