@@ -481,10 +481,27 @@
                 scroll-behavior: smooth;
             }
         }
+
+          .savings-badge {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 4px;
+        }
+        
+        .duration-text {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
-    <div class="app-container">
+    {{-- <div class="app-container">
         <div class="app-header">
             <button class="back-button" onclick="goBack()">←</button>
             <div class="page-title">Buy Premium</div>
@@ -563,9 +580,106 @@
         <div class="footer">
             <p>Secure payment powered by Fluidpay</p>
         </div>
+    </div> --}}
+
+    <div class="app-container">
+        <div class="header">
+            <h1>Select Plan</h1>
+            <p>Choose the perfect plan for unlimited social events</p>
+        </div>
+
+        @if($user)
+        {{-- <div class="user-info"> --}}
+            {{-- <strong>{{ $user->name ?? 'User' }}</strong> • {{ $user->email }} --}}
+        {{-- </div> --}}
+        @endif
+
+        <div class="plans-wrapper">
+            <div class="plans-container" id="plansContainer">
+                @forelse($plans as $index => $plan)
+                <div class="plan-card {{ $plan['id'] === 'monthly' ? 'popular' : '' }} {{ ($activePlan && $activePlan->plan_id === $plan['id']) ? 'active' : '' }}" data-index="{{ $index }}">
+                    @if($activePlan && $activePlan->plan_id === $plan['id'])
+                        <div class="active-badge-top">Active</div>
+                    @elseif($plan['id'] === 'monthly')
+                        <div class="plan-badge">Popular</div>
+                    @elseif($plan['id'] === 'yearly')
+                        <div class="plan-badge">Best Value</div>
+                    @endif
+                    
+                    <div class="plan-header">
+                        <div class="plan-icon">
+                            @if($plan['id'] === 'starter')
+                                S
+                            @elseif($plan['id'] === 'monthly')
+                                M
+                            @else
+                                Y
+                            @endif
+                        </div>
+                        <div class="plan-title-section">
+                            <div class="plan-name">{{ $plan['name'] }}</div>
+                            <div class="plan-price">
+                                ${{ number_format($plan['amount'], 0) }}
+                                <span>/{{ ucfirst($plan['duration']) }}</span>
+                            </div>
+                            @if($plan['id'] === 'yearly')
+                            <div class="savings-badge">Save $41/year</div>
+                            @endif
+                            @if(isset($plan['events_limit']))
+                            <div class="duration-text">
+                                @if($plan['events_limit'] === 'unlimited')
+                                    Unlimited Events
+                                @else
+                                    {{ $plan['events_limit'] }} Events/Month
+                                @endif
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    
+                    <ul class="plan-features">
+                        @foreach($plan['features'] as $feature)
+                        <li>{{ $feature }}</li>
+                        @endforeach
+                    </ul>
+                    
+                    @if($activePlan && $activePlan->plan_id === $plan['id'])
+                        <button class="buy-button" disabled>Current Plan</button>
+                    @else
+                        <button 
+                            class="buy-button" 
+                            onclick="purchasePlan('{{ $plan['id'] }}', '{{ $plan['payment_url'] }}', '{{ $user?->email ?? '' }}', '{{ $user?->id ?? '' }}', '{{ $user?->name ?? '' }}')">
+                            @if($plan['id'] === 'starter')
+                                Get Started
+                            @elseif($plan['id'] === 'monthly')
+                                Go Unlimited
+                            @else
+                                Best Value - Buy Now
+                            @endif
+                        </button>
+                    @endif
+                </div>
+                @empty
+                <div class="loading">Loading plans...</div>
+                @endforelse
+            </div>
+
+            <!-- Scroll Indicator Dots -->
+            @if(count($plans) > 1)
+            <div class="scroll-indicator" id="scrollIndicator">
+                @foreach($plans as $index => $plan)
+                <div class="scroll-dot {{ $index === 0 ? 'active' : '' }}" data-index="{{ $index }}" onclick="scrollToCard({{ $index }})"></div>
+                @endforeach
+            </div>
+            @endif
+        </div>
+
+        <div class="footer">
+            <p>Secure payment powered by Fluidpay</p>
+        </div>
     </div>
 
-    <script>
+   <script>
         // Scroll indicator update
         const plansContainer = document.getElementById('plansContainer');
         const scrollIndicator = document.getElementById('scrollIndicator');
@@ -608,69 +722,69 @@
         }
 
         function goBack() {
-        if (window.ReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'GO_BACK'
-            }));
-        } else if (window.FlutterChannel) {
-            window.FlutterChannel.postMessage(JSON.stringify({
-                type: 'GO_BACK'
-            }));
-        } else {
-            window.history.back();
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'GO_BACK'
+                }));
+            } else if (window.FlutterChannel) {
+                window.FlutterChannel.postMessage(JSON.stringify({
+                    type: 'GO_BACK'
+                }));
+            } else {
+                window.history.back();
+            }
         }
-    }
 
-       function purchasePlan(planId, paymentUrl, userEmail, userId, userName) {
-        const url = new URL(paymentUrl);
-        
-        // Add user info as query params
-        if (userEmail) url.searchParams.append('customer_email', userEmail);
-        if (userName) url.searchParams.append('customer_name', userName);
-        
-        // Add hash to success/cancel URLs
-        const hash = '{{ $hash ?? "" }}';
-        if (hash) {
-            const successUrl = '{{ url("/plans/success") }}?hash=' + hash;
-            const cancelUrl = '{{ url("/plans/cancel") }}?hash=' + hash;
+        function purchasePlan(planId, paymentUrl, userEmail, userId, userName) {
+            const url = new URL(paymentUrl);
             
-            url.searchParams.append('success_url', successUrl);
-            url.searchParams.append('cancel_url', cancelUrl);
+            // Add user info as query params
+            if (userEmail) url.searchParams.append('customer_email', userEmail);
+            if (userName) url.searchParams.append('customer_name', userName);
+            
+            // Add hash to success/cancel URLs
+            const hash = '{{ $hash ?? "" }}';
+            if (hash) {
+                const successUrl = '{{ url("/plans/success") }}?hash=' + hash;
+                const cancelUrl = '{{ url("/plans/cancel") }}?hash=' + hash;
+                
+                url.searchParams.append('success_url', successUrl);
+                url.searchParams.append('cancel_url', cancelUrl);
+            }
+            
+            const finalUrl = url.toString();
+            
+            // For React Native
+            if (window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'OPEN_PAYMENT',
+                    planId: planId,
+                    paymentUrl: finalUrl,
+                    userEmail: userEmail,
+                    userId: userId
+                }));
+            }
+            // For Flutter
+            else if (window.FlutterChannel) {
+                window.FlutterChannel.postMessage(JSON.stringify({
+                    type: 'OPEN_PAYMENT',
+                    planId: planId,
+                    paymentUrl: finalUrl,
+                    userEmail: userEmail,
+                    userId: userId
+                }));
+            }
+            // For web browser
+            else {
+                window.location.href = finalUrl;
+            }
         }
-        
-        const finalUrl = url.toString();
-        
-        // For React Native
-        if (window.ReactNativeWebView) {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-                type: 'OPEN_PAYMENT',
-                planId: planId,
-                paymentUrl: finalUrl,
-                userEmail: userEmail,
-                userId: userId
-            }));
-        }
-        // For Flutter
-        else if (window.FlutterChannel) {
-            window.FlutterChannel.postMessage(JSON.stringify({
-                type: 'OPEN_PAYMENT',
-                planId: planId,
-                paymentUrl: finalUrl,
-                userEmail: userEmail,
-                userId: userId
-            }));
-        }
-        // For web browser
-        else {
-            window.location.href = finalUrl;
-        }
-    }
 
         window.addEventListener('message', function(event) {
-        if (event.data && event.data.type === 'PAYMENT_SUCCESS') {
-            window.location.reload();
-        }
-    });
+            if (event.data && event.data.type === 'PAYMENT_SUCCESS') {
+                window.location.reload();
+            }
+        });
     </script>
 </body>
 </html>
